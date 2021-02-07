@@ -1,12 +1,13 @@
 package binance
 
 import (
-	goex "github.com/nntaoli-project/goex"
 	"net"
 	"net/http"
 	"net/url"
 	"testing"
 	"time"
+
+	goex "github.com/soulsplit/goex"
 )
 
 var bs = NewBinanceSwap(&goex.APIConfig{

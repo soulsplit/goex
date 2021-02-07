@@ -1,10 +1,11 @@
 package bitget
 
 import (
-	"github.com/nntaoli-project/goex"
 	"net/http"
 	"net/url"
 	"testing"
+
+	"github.com/soulsplit/goex"
 )
 
 var bg = NewSwap(&goex.APIConfig{

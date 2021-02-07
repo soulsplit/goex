@@ -1,12 +1,13 @@
 package coinbene
 
 import (
-	goex "github.com/nntaoli-project/goex"
 	"net"
 	"net/http"
 	"net/url"
 	"testing"
 	"time"
+
+	goex "github.com/soulsplit/goex"
 )
 
 var (

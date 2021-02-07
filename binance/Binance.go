@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	. "github.com/nntaoli-project/goex"
 	"net/http"
 	"net/url"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	. "github.com/soulsplit/goex"
 )
 
 const (
@@ -653,7 +654,7 @@ func (bn *Binance) adaptOrder(currencyPair CurrencyPair, orderMap map[string]int
 
 	return Order{
 		OrderID:      ToInt(orderMap["orderId"]),
-		OrderID2:     fmt.Sprintf("%.0f",orderMap["orderId"]),
+		OrderID2:     fmt.Sprintf("%.0f", orderMap["orderId"]),
 		Cid:          orderMap["clientOrderId"].(string),
 		Currency:     currencyPair,
 		Price:        ToFloat64(orderMap["price"]),

@@ -1,11 +1,12 @@
 package bitstamp
 
 import (
-	"github.com/nntaoli-project/goex"
-	"github.com/stretchr/testify/assert"
 	"log"
 	"net/http"
 	"testing"
+
+	"github.com/soulsplit/goex"
+	"github.com/stretchr/testify/assert"
 )
 
 var client = http.Client{

@@ -3,12 +3,13 @@ package binance
 import (
 	json2 "encoding/json"
 	"fmt"
-	"github.com/nntaoli-project/goex"
-	"github.com/nntaoli-project/goex/internal/logger"
 	"os"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/soulsplit/goex"
+	"github.com/soulsplit/goex/internal/logger"
 )
 
 type req struct {

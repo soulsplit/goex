@@ -1,11 +1,12 @@
 package binance
 
 import (
-	"github.com/nntaoli-project/goex"
 	"log"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/soulsplit/goex"
 )
 
 var spotWs *SpotWs

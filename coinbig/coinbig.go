@@ -1,9 +1,10 @@
 package coinbig
 
 import (
-	. "github.com/nntaoli-project/goex"
 	"net/http"
 	"net/url"
+
+	. "github.com/soulsplit/goex"
 
 	"bytes"
 	"encoding/json"

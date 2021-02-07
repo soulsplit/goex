@@ -8,12 +8,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	. "github.com/nntaoli-project/goex"
 	"net/http"
 	"net/url"
 	"sort"
 	"strings"
 	"time"
+
+	. "github.com/soulsplit/goex"
 )
 
 type BaseResponse struct {

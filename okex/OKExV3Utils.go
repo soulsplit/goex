@@ -1,10 +1,11 @@
 package okex
 
-import "time"
-
-//
 import (
-	. "github.com/nntaoli-project/goex"
+	"time"
+
+	//
+
+	. "github.com/soulsplit/goex"
 )
 
 func adaptKLinePeriod(period KlinePeriod) int {

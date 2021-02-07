@@ -1,10 +1,11 @@
 package okex
 
 import (
-	"fmt"
-	. "github.com/nntaoli-project/goex"
 	"errors"
+	"fmt"
 	"strings"
+
+	. "github.com/soulsplit/goex"
 )
 
 type OKExMargin struct {

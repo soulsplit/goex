@@ -1,12 +1,12 @@
 package exx
 
 import (
-	"github.com/nntaoli-project/goex"
 	"net/http"
 	"net/url"
 	"testing"
-)
 
+	"github.com/soulsplit/goex"
+)
 
 var (
 	api_key       = "yourAccessKey"

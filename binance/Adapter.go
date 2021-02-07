@@ -2,8 +2,9 @@ package binance
 
 import (
 	"fmt"
-	"github.com/nntaoli-project/goex"
 	"strings"
+
+	"github.com/soulsplit/goex"
 )
 
 func adaptStreamToCurrencyPair(stream string) goex.CurrencyPair {

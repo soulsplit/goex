@@ -1,10 +1,11 @@
 package huobi
 
 import (
-	"github.com/nntaoli-project/goex"
 	"log"
 	"testing"
 	"time"
+
+	"github.com/soulsplit/goex"
 )
 
 func TestNewHbdmWs(t *testing.T) {

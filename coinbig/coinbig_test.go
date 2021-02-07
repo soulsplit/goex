@@ -1,13 +1,13 @@
 package coinbig
 
 import (
-	"github.com/nntaoli-project/goex"
 	"net/http"
 	"testing"
+
+	"github.com/soulsplit/goex"
 )
 
 var cb = New(http.DefaultClient, "", "")
-
 
 func TestCoinBig_BuildSigned(t *testing.T) {
 	return

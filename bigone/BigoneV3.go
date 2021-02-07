@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/nntaoli-project/goex"
 	"github.com/nubo/jwt"
+	"github.com/soulsplit/goex"
 )
 
 type BigoneV3 struct {

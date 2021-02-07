@@ -1,17 +1,18 @@
 package builder
 
 import (
-	"github.com/nntaoli-project/goex"
-	"github.com/nntaoli-project/goex/internal/logger"
-	"github.com/stretchr/testify/assert"
 	"log"
 	"testing"
 	"time"
+
+	"github.com/soulsplit/goex"
+	"github.com/soulsplit/goex/internal/logger"
+	"github.com/stretchr/testify/assert"
 )
 
 var builder = NewAPIBuilder()
 
-func init()  {
+func init() {
 	logger.SetLevel(logger.INFO)
 }
 
@@ -29,7 +30,7 @@ func TestAPIBuilder_Build(t *testing.T) {
 
 func TestAPIBuilder_BuildSpotWs(t *testing.T) {
 	//os.Setenv("HTTPS_PROXY" , "socks5://127.0.0.1:1080")
-	wsApi , _ := builder.BuildSpotWs(goex.OKEX_V3)
+	wsApi, _ := builder.BuildSpotWs(goex.OKEX_V3)
 	wsApi.DepthCallback(func(depth *goex.Depth) {
 		log.Println(depth)
 	})
@@ -39,10 +40,10 @@ func TestAPIBuilder_BuildSpotWs(t *testing.T) {
 
 func TestAPIBuilder_BuildFuturesWs(t *testing.T) {
 	//os.Setenv("HTTPS_PROXY" , "socks5://127.0.0.1:1080")
-	wsApi , _ := builder.BuildFuturesWs(goex.OKEX_V3)
+	wsApi, _ := builder.BuildFuturesWs(goex.OKEX_V3)
 	wsApi.DepthCallback(func(depth *goex.Depth) {
 		log.Println(depth)
 	})
-	wsApi.SubscribeDepth(goex.BTC_USD , goex.QUARTER_CONTRACT)
+	wsApi.SubscribeDepth(goex.BTC_USD, goex.QUARTER_CONTRACT)
 	time.Sleep(time.Minute)
 }

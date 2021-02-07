@@ -2,9 +2,10 @@ package goex
 
 import (
 	"encoding/json"
-	. "github.com/nntaoli-project/goex/internal/logger"
 	"testing"
 	"time"
+
+	. "github.com/soulsplit/goex/internal/logger"
 )
 
 func Test_time(t *testing.T) {
@@ -44,8 +45,8 @@ func TestNewWsConn(t *testing.T) {
 		Heartbeat(heartbeatFunc, 5*time.Second).ProtoHandleFunc(ProtoHandle).Build()
 	t.Log(ws.Subscribe(map[string]string{
 		//"cmd":"sub", "args":"[\"ticker.btcusdt\"]", "id": clientId}))
-		"cmd":"sub", "args":"ticker.btcusdt", "id": clientId}))
+		"cmd": "sub", "args": "ticker.btcusdt", "id": clientId}))
 	time.Sleep(time.Second * 20)
 	ws.c.Close()
-	time.Sleep(time.Second*120)
+	time.Sleep(time.Second * 120)
 }

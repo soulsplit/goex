@@ -3,13 +3,14 @@ package allcoin
 import (
 	"encoding/json"
 	"errors"
-	. "github.com/nntaoli-project/goex"
 	"log"
 	"net/http"
 	"net/url"
 	"sort"
 	"strings"
 	"time"
+
+	. "github.com/soulsplit/goex"
 )
 
 const (

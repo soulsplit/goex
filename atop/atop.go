@@ -25,7 +25,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	. "github.com/nntaoli-project/goex"
+
+	. "github.com/soulsplit/goex"
 
 	"log"
 	"net/http"

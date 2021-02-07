@@ -1,9 +1,10 @@
 package zb
 
 import (
-	"github.com/nntaoli-project/goex"
 	"net/http"
 	"testing"
+
+	"github.com/soulsplit/goex"
 )
 
 var (

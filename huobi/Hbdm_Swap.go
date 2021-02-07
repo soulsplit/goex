@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	. "github.com/nntaoli-project/goex"
-	"github.com/nntaoli-project/goex/internal/logger"
 	"net/url"
 	"sort"
 	"time"
+
+	. "github.com/soulsplit/goex"
+	"github.com/soulsplit/goex/internal/logger"
 )
 
 type HbdmSwap struct {

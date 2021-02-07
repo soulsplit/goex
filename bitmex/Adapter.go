@@ -2,8 +2,9 @@ package bitmex
 
 import (
 	"fmt"
-	. "github.com/nntaoli-project/goex"
 	"strings"
+
+	. "github.com/soulsplit/goex"
 )
 
 func AdaptCurrencyPairToSymbol(pair CurrencyPair, contract string) string {

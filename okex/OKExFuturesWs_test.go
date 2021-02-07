@@ -1,12 +1,13 @@
 package okex
 
 import (
-	"github.com/nntaoli-project/goex"
-	"github.com/nntaoli-project/goex/internal/logger"
 	"net/http"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/soulsplit/goex"
+	"github.com/soulsplit/goex/internal/logger"
 )
 
 var (

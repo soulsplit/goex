@@ -1,10 +1,11 @@
 package bitmex
 
 import (
-	"github.com/nntaoli-project/goex"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/soulsplit/goex"
 )
 
 func TestNewSwapWs(t *testing.T) {
@@ -17,7 +18,7 @@ func TestNewSwapWs(t *testing.T) {
 		t.Logf("%s %v", ticker.ContractType, ticker.Ticker)
 	})
 	//ws.SubscribeDepth(goex.NewCurrencyPair2("LTC_USD"), goex.SWAP_CONTRACT)
-	ws.SubscribeTicker(goex.LTC_USDT , goex.SWAP_CONTRACT)
+	ws.SubscribeTicker(goex.LTC_USDT, goex.SWAP_CONTRACT)
 
 	time.Sleep(5 * time.Minute)
 }
