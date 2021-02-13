@@ -113,7 +113,6 @@ func (k *Kraken) toOrder(orderinfo interface{}) Order {
 	curr := Currency{Symbol: pair[:3], Desc: ""}
 	fiat := Currency{Symbol: pair[3:], Desc: ""}
 	currency := CurrencyPair{CurrencyA: curr, CurrencyB: fiat}
-	fmt.Println(currency)
 	return Order{
 		Amount:     ToFloat64(omap["vol"]),
 		Price:      ToFloat64(descmap["price"]),
