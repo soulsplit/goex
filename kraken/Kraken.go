@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/soulsplit/goex"
 	. "github.com/soulsplit/goex"
 )
 
@@ -109,6 +110,8 @@ func (k *Kraken) CancelOrder(orderId string, currency CurrencyPair) (bool, error
 func (k *Kraken) toOrder(orderinfo interface{}) Order {
 	omap := orderinfo.(map[string]interface{})
 	descmap := omap["descr"].(map[string]interface{})
+	currency := descmap["pair"].(goex.CurrencyPair)
+	fmt.Println(currency)
 	return Order{
 		Amount:     ToFloat64(omap["vol"]),
 		Price:      ToFloat64(descmap["price"]),
@@ -118,6 +121,7 @@ func (k *Kraken) toOrder(orderinfo interface{}) Order {
 		Status:     k.convertOrderStatus(omap["status"].(string)),
 		Fee:        ToFloat64(omap["fee"]),
 		OrderTime:  ToInt(omap["opentm"]),
+		Currency:   currency,
 	}
 }
 
@@ -172,7 +176,6 @@ func (k *Kraken) GetUnfinishOrders(currency CurrencyPair) ([]Order, error) {
 	for txid, v := range result.Open {
 		ord := k.toOrder(v)
 		ord.OrderID2 = txid
-		ord.Currency = currency
 		orders = append(orders, ord)
 	}
 

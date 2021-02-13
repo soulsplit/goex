@@ -22,6 +22,7 @@ type Order struct {
 	OrderType    int    //0:default,1:maker,2:fok,3:ioc
 	OrderTime    int    // create  timestamp
 	FinishedTime int64  //finished timestamp
+
 }
 
 type Trade struct {
