@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/soulsplit/goex"
 	. "github.com/soulsplit/goex"
 )
 
@@ -110,7 +109,10 @@ func (k *Kraken) CancelOrder(orderId string, currency CurrencyPair) (bool, error
 func (k *Kraken) toOrder(orderinfo interface{}) Order {
 	omap := orderinfo.(map[string]interface{})
 	descmap := omap["descr"].(map[string]interface{})
-	currency := descmap["pair"].(goex.CurrencyPair)
+	pair := descmap["pair"].(string)
+	curr := Currency{Symbol: pair[:2], Desc: ""}
+	fiat := Currency{Symbol: pair[2:], Desc: ""}
+	currency := CurrencyPair{CurrencyA: curr, CurrencyB: fiat}
 	fmt.Println(currency)
 	return Order{
 		Amount:     ToFloat64(omap["vol"]),
