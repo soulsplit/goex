@@ -225,22 +225,21 @@ func (k *Kraken) GetAccount() (*Account, error) {
 //}
 
 func (k *Kraken) GetAssets(currency CurrencyPair) (*Assets, error) {
-	var resultmap map[string]interface{}
+	var resultmap map[string]map[string]interface{}
 	assets := new(Assets)
 	assetName := k.convertPair(currency).ToSymbol("")
-	if assetName == "all_"{
-	    assetName = "all"
-    }
+	if assetName == "all_" {
+		assetName = "all"
+	}
 	err := k.doAuthenticatedRequest("GET", PUBLIC+"AssetPairs?asset="+assetName, url.Values{}, &resultmap)
 	if err != nil {
 		return nil, err
 	}
 	log.Println(resultmap)
 	for _, content := range resultmap {
-		assets.Assets = append(assets.Assets, k.convertCurrency(content["altname"]))
+		assets.Assets = append(assets.Assets, k.convertCurrency(fmt.Sprintf("%v", content["altname"])))
 	}
 	return assets, err
-
 }
 
 func (k *Kraken) GetTicker(currency CurrencyPair) (*Ticker, error) {
