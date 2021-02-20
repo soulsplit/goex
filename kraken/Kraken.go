@@ -46,7 +46,7 @@ func New(client *http.Client, accesskey, secretkey string) *Kraken {
 }
 
 func (k *Kraken) placeOrder(orderType, side, amount, price string, pair CurrencyPair) (*Order, error) {
-	apiuri := "private/AddOrder"
+	apiuri := PRIVATE + "AddOrder"
 
 	params := url.Values{}
 	params.Set("pair", k.convertPair(pair).ToSymbol(""))
@@ -94,7 +94,7 @@ func (k *Kraken) MarketSell(amount, price string, currency CurrencyPair) (*Order
 
 func (k *Kraken) CancelOrder(orderId string, currency CurrencyPair) (bool, error) {
 	params := url.Values{}
-	apiuri := "private/CancelOrder"
+	apiuri := PRIVATE + "CancelOrder"
 	params.Set("txid", orderId)
 
 	var respmap map[string]interface{}
@@ -132,7 +132,7 @@ func (k *Kraken) GetOrderInfos(txids ...string) ([]Order, error) {
 	params.Set("txid", strings.Join(txids, ","))
 
 	var resultmap map[string]interface{}
-	err := k.doAuthenticatedRequest("POST", "private/QueryOrders", params, &resultmap)
+	err := k.doAuthenticatedRequest("POST", PRIVATE+"QueryOrders", params, &resultmap)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +168,7 @@ func (k *Kraken) GetUnfinishOrders(currency CurrencyPair) ([]Order, error) {
 		Open map[string]interface{} `json:"open"`
 	}
 
-	err := k.doAuthenticatedRequest("POST", "private/OpenOrders", url.Values{}, &result)
+	err := k.doAuthenticatedRequest("POST", PRIVATE+"OpenOrders", url.Values{}, &result)
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +190,7 @@ func (k *Kraken) GetOrderHistorys(currency CurrencyPair, optional ...OptionalPar
 
 func (k *Kraken) GetAccount() (*Account, error) {
 	params := url.Values{}
-	apiuri := "private/Balance"
+	apiuri := PRIVATE + "Balance"
 
 	var resustmap map[string]interface{}
 	err := k.doAuthenticatedRequest("POST", apiuri, params, &resustmap)
@@ -219,9 +219,25 @@ func (k *Kraken) GetAccount() (*Account, error) {
 
 //func (k *Kraken) GetTradeBalance() {
 //	var resultmap map[string]interface{}
-//	k.doAuthenticatedRequest("POST", "private/TradeBalance", url.Values{}, &resultmap)
+//	k.doAuthenticatedRequest("POST", PRIVATE+"TradeBalance", url.Values{}, &resultmap)
 //	log.Println(resultmap)
 //}
+
+func (k *Kraken) GetAssets(currency CurrencyPair) (*Assets, error) {
+	var resultmap map[string]interface{}
+	assets := new(Assets)
+
+	err := k.doAuthenticatedRequest("GET", PUBLIC+"AssetPairs?pair="+k.convertPair(currency).ToSymbol(""), url.Values{}, &resultmap)
+	if err != nil {
+		return nil, err
+	}
+
+	for key, _ := range resultmap {
+		assets.Assets = append(assets.Assets, k.convertCurrency(key))
+	}
+	return assets, err
+
+}
 
 func (k *Kraken) GetTicker(currency CurrencyPair) (*Ticker, error) {
 	var resultmap map[string]interface{}
@@ -246,7 +262,7 @@ func (k *Kraken) GetTicker(currency CurrencyPair) (*Ticker, error) {
 }
 
 func (k *Kraken) GetDepth(size int, currency CurrencyPair) (*Depth, error) {
-	apiuri := fmt.Sprintf("public/Depth?pair=%s&count=%d", k.convertPair(currency).ToSymbol(""), size)
+	apiuri := fmt.Sprintf(PUBLIC+"Depth?pair=%s&count=%d", k.convertPair(currency).ToSymbol(""), size)
 	var resultmap map[string]interface{}
 	err := k.doAuthenticatedRequest("GET", apiuri, url.Values{}, &resultmap)
 	if err != nil {

@@ -64,6 +64,10 @@ type Account struct {
 	SubAccounts map[Currency]SubAccount
 }
 
+type Assets struct {
+	Assets []Currency `json:"asset"`
+}
+
 type Ticker struct {
 	Pair CurrencyPair `json:"omitempty"`
 	Last float64      `json:"last,string"`
