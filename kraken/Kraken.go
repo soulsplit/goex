@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"sort"
@@ -224,6 +223,7 @@ func (k *Kraken) GetAccount() (*Account, error) {
 //	log.Println(resultmap)
 //}
 
+// GetAssets will return the full list of currency pairs available
 func (k *Kraken) GetAssets(currency CurrencyPair) (*Assets, error) {
 	var resultmap map[string]map[string]interface{}
 	assets := new(Assets)
@@ -235,9 +235,9 @@ func (k *Kraken) GetAssets(currency CurrencyPair) (*Assets, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Println(resultmap)
+
 	for _, content := range resultmap {
-		assets.Assets = append(assets.Assets, k.convertCurrency(fmt.Sprintf("%v", content["altname"])))
+		assets.Assets = append(assets.Assets, NewCurrencyPair3(fmt.Sprintf("%v", content["wsname"]), "/"))
 	}
 	return assets, err
 }

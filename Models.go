@@ -65,7 +65,7 @@ type Account struct {
 }
 
 type Assets struct {
-	Assets []Currency `json:"asset"`
+	Assets []CurrencyPair `json:"asset"`
 }
 
 type Ticker struct {
