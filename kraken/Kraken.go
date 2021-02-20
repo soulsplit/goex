@@ -231,7 +231,7 @@ func (k *Kraken) GetAssets(currency CurrencyPair) (*Assets, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	log.Println(resultmap)
 	for key, _ := range resultmap {
 		assets.Assets = append(assets.Assets, k.convertCurrency(key))
 	}
