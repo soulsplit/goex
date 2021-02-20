@@ -401,3 +401,7 @@ func (bitstamp *Bitstamp) GetTrades(currencyPair CurrencyPair, since int64) ([]T
 func (bitstamp *Bitstamp) GetExchangeName() string {
 	return BITSTAMP
 }
+
+func (bitstamp *Bitstamp) GetAssets(currency CurrencyPair) (*Assets, error) {
+	panic("")
+}

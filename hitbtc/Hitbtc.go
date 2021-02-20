@@ -637,3 +637,7 @@ func parseSide(side, oType string) goex.TradeSide {
 		panic("Invalid TradeSide:" + side + "&" + oType)
 	}
 }
+
+func (hitbtc *Hitbtc) GetAssets(currency goex.CurrencyPair) (*goex.Assets, error) {
+	panic("")
+}

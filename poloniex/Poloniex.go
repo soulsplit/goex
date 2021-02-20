@@ -514,3 +514,7 @@ func (poloniex *Poloniex) MarketBuy(amount, price string, currency CurrencyPair)
 func (poloniex *Poloniex) MarketSell(amount, price string, currency CurrencyPair) (*Order, error) {
 	panic("unsupport the market order")
 }
+
+func (poloniex *Poloniex) GetAssets(currency CurrencyPair) (*Assets, error) {
+	panic("")
+}

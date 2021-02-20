@@ -771,3 +771,7 @@ func (hbpro *HuoBiPro) GetCurrenciesPrecision() ([]HuoBiProSymbol, error) {
 	//fmt.Println(Symbols)
 	return Symbols, nil
 }
+
+func (hbpro *HuoBiPro) GetAssets(currency CurrencyPair) (*Assets, error) {
+	panic("")
+}

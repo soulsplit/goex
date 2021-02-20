@@ -791,3 +791,7 @@ func (kc *KuCoin) CancelWithdrawal(withdrawalId string) (*kucoin.CancelWithdrawa
 
 	return model, nil
 }
+
+func (kc *KuCoin) GetAssets(currency CurrencyPair) (*Assets, error) {
+	panic("")
+}

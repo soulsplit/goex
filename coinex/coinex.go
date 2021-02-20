@@ -343,3 +343,7 @@ func (coinex *CoinEx) adaptOrder(ordermap map[string]interface{}, pair CurrencyP
 		Fee:        ToFloat64(ordermap["deal_fee"]),
 		OrderTime:  ToInt(ordermap["create_time"])}
 }
+
+func (coinex *CoinEx) GetAssets(currency CurrencyPair) (*Assets, error) {
+	panic("")
+}

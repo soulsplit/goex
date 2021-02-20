@@ -420,3 +420,7 @@ func convertKeyToPair(key string) CurrencyPair {
 	split := strings.Split(key, ":")
 	return symbolToCurrencyPair(split[2][1:])
 }
+
+func (bfx *Bitfinex) GetAssets(currency CurrencyPair) (*Assets, error) {
+	panic("")
+}

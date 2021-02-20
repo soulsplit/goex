@@ -330,3 +330,7 @@ func (bit *Bithumb) GetTrades(currencyPair CurrencyPair, since int64) ([]Trade, 
 func (bit *Bithumb) GetExchangeName() string {
 	return BITHUMB
 }
+
+func (bit *Bithumb) GetAssets(currency CurrencyPair) (*Assets, error) {
+	panic("")
+}

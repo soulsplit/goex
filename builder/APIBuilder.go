@@ -380,3 +380,7 @@ func (builder *APIBuilder) BuildWallet(exName string) (WalletApi, error) {
 	}
 	return nil, errors.New("not support the wallet api for  " + exName)
 }
+
+func (builder *APIBuilder) GetAssets(currency CurrencyPair) (*Assets, error) {
+	panic("")
+}

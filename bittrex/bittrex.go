@@ -118,3 +118,7 @@ func (bx *Bittrex) GetTrades(currencyPair CurrencyPair, since int64) ([]Trade, e
 func (bx *Bittrex) GetExchangeName() string {
 	return BITTREX
 }
+
+func (bx *Bittrex) GetAssets(currency CurrencyPair) (*Assets, error) {
+	panic("")
+}

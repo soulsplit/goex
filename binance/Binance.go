@@ -667,3 +667,7 @@ func (bn *Binance) adaptOrder(currencyPair CurrencyPair, orderMap map[string]int
 		FinishedTime: ToInt64(orderMap["updateTime"]),
 	}
 }
+
+func (bn *Binance) GetAssets(currency CurrencyPair) (*Assets, error) {
+	panic("")
+}

@@ -449,3 +449,7 @@ func (zb *Zb) MarketBuy(amount, price string, currency CurrencyPair) (*Order, er
 func (zb *Zb) MarketSell(amount, price string, currency CurrencyPair) (*Order, error) {
 	panic("unsupport the market order")
 }
+
+func (zb *Zb) GetAssets(currency CurrencyPair) (*Assets, error) {
+	panic("")
+}

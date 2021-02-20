@@ -628,3 +628,7 @@ func (at *Atop) CancelWithdraw(id string, currency Currency, safePwd string) (bo
 func (at *Atop) adaptCurrencyPair(pair CurrencyPair) CurrencyPair {
 	return pair
 }
+
+func (at *Atop) GetAssets(currency CurrencyPair) (*Assets, error) {
+	panic("")
+}

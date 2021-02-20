@@ -183,3 +183,7 @@ func (ok *OKEx) GetKlineRecords(currency CurrencyPair, period KlinePeriod, size 
 func (ok *OKEx) GetTrades(currencyPair CurrencyPair, since int64) ([]Trade, error) {
 	return ok.OKExSpot.GetTrades(currencyPair, since)
 }
+
+func (ok *OKEx) GetAssets(currency CurrencyPair) (*Assets, error) {
+	panic("")
+}

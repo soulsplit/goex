@@ -479,3 +479,7 @@ func (bo *Bigone) GetKlineRecords(currency goex.CurrencyPair, period goex.KlineP
 func (bo *Bigone) GetTrades(currencyPair goex.CurrencyPair, since int64) ([]goex.Trade, error) {
 	panic("not implements")
 }
+
+func (bo *Bigone) GetAssets(currency goex.CurrencyPair) (*goex.Assets, error) {
+	panic("")
+}
