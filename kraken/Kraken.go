@@ -227,14 +227,17 @@ func (k *Kraken) GetAccount() (*Account, error) {
 func (k *Kraken) GetAssets(currency CurrencyPair) (*Assets, error) {
 	var resultmap map[string]interface{}
 	assets := new(Assets)
-
-	err := k.doAuthenticatedRequest("GET", PUBLIC+"AssetPairs?pair="+k.convertPair(currency).ToSymbol(""), url.Values{}, &resultmap)
+	assetName := k.convertPair(currency).ToSymbol("")
+	if assetName == "all_"{
+	    assetName = "all"
+    }
+	err := k.doAuthenticatedRequest("GET", PUBLIC+"AssetPairs?asset="+assetName, url.Values{}, &resultmap)
 	if err != nil {
 		return nil, err
 	}
 	log.Println(resultmap)
-	for key, _ := range resultmap {
-		assets.Assets = append(assets.Assets, k.convertCurrency(key))
+	for _, content := range resultmap {
+		assets.Assets = append(assets.Assets, k.convertCurrency(content["altname"]))
 	}
 	return assets, err
 
