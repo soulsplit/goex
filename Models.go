@@ -28,11 +28,11 @@ type Order struct {
 type Trade struct {
 	Tid       int64        `json:"tid"`
 	OrderType TradeSide    `json:"type"`
-	Type      string       //limit / market
+	Type      TradeSide    //limit / market
 	Amount    float64      `json:"vol,string"`
 	Price     float64      `json:"price,string"`
 	Date      int64        `json:"date_ms"`
-	Currency  CurrencyPair `json:"pair"`
+	Pair      CurrencyPair `json:"pair"`
 	OrderID2  string       `json:"ordertxid"`
 	OrderTime int          `json:"time"`
 	Cost      float64      `json:"cost"`

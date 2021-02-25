@@ -141,7 +141,7 @@ func (k *Kraken) toTrade(tradeinfo interface{}) Trade {
 		OrderType: AdaptTradeSide(descmap["type"].(string)),
 		Fee:       ToFloat64(descmap["fee"]),
 		OrderTime: ToInt(descmap["time"]),
-		Currency:  currency,
+		Pair:      currency,
 		OrderID2:  descmap["ordertxid"].(string),
 		Tid:       ToInt64(tmap["txid"]),
 	}
