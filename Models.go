@@ -26,13 +26,37 @@ type Order struct {
 }
 
 type Trade struct {
-	Tid    int64        `json:"tid"`
-	Type   TradeSide    `json:"type"`
-	Amount float64      `json:"amount,string"`
-	Price  float64      `json:"price,string"`
-	Date   int64        `json:"date_ms"`
-	Pair   CurrencyPair `json:"omitempty"`
+	Tid       int64        `json:"tid"`
+	OrderType TradeSide    `json:"type"`
+	Type      string       //limit / market
+	Amount    float64      `json:"vol,string"`
+	Price     float64      `json:"price,string"`
+	Date      int64        `json:"date_ms"`
+	Currency  CurrencyPair `json:"pair"`
+	OrderID2  string       `json:"ordertxid"`
+	OrderTime int          `json:"time"`
+	Cost      float64      `json:"cost"`
+	Fee       float64      `json:"fee"`
+	Margin    float64      `json:"margin"`
+	Misc      string       `json:"misc"`
 }
+
+// trades = array of trade info with txid as the key
+//     ordertxid = order responsible for execution of trade
+//     pair = asset pair
+//     time = unix timestamp of trade
+//     type = type of order (buy/sell)
+//     ordertype = order type
+
+//     price = average price order was executed at (quote currency)
+//     cost = total cost of order (quote currency)
+//     fee = total fee (quote currency)
+//     vol = volume (base currency)
+
+//     margin = initial margin (quote currency)
+//     misc = comma delimited list of miscellaneous info
+//         closing = trade closes all or part of a position
+// count = amount of available trades info matching criteria
 
 type SubAccount struct {
 	Currency     Currency

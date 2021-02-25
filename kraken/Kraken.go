@@ -127,6 +127,26 @@ func (k *Kraken) toOrder(orderinfo interface{}) Order {
 	}
 }
 
+func (k *Kraken) toTrade(tradeinfo interface{}) Trade {
+	tmap := tradeinfo.(map[string]interface{})
+	descmap := tmap["trades"].(map[string]interface{})
+	pair := descmap["pair"].(string)
+	ind := strings.Index(pair, "EUR")
+	curr := Currency{Symbol: pair[:ind], Desc: ""}
+	fiat := Currency{Symbol: pair[ind:], Desc: ""}
+	currency := CurrencyPair{CurrencyA: curr, CurrencyB: fiat}
+	return Trade{
+		Amount:    ToFloat64(descmap["vol"]),
+		Price:     ToFloat64(descmap["price"]),
+		OrderType: AdaptTradeSide(descmap["type"].(string)),
+		Fee:       ToFloat64(descmap["fee"]),
+		OrderTime: ToInt(descmap["time"]),
+		Currency:  currency,
+		OrderID2:  descmap["ordertxid"].(string),
+		Tid:       ToInt64(tmap["txid"]),
+	}
+}
+
 func (k *Kraken) GetOrderInfos(txids ...string) ([]Order, error) {
 	params := url.Values{}
 	params.Set("txid", strings.Join(txids, ","))
@@ -184,8 +204,21 @@ func (k *Kraken) GetUnfinishOrders(currency CurrencyPair) ([]Order, error) {
 	return orders, nil
 }
 
-func (k *Kraken) GetOrderHistorys(currency CurrencyPair, optional ...OptionalParameter) ([]Order, error) {
-	panic("")
+func (k *Kraken) GetOrderHistorys(currency CurrencyPair, optional ...OptionalParameter) ([]Trade, error) {
+	var resultmap map[string]map[string]interface{}
+
+	err := k.doAuthenticatedRequest("POST", PRIVATE+"TradesHistory?ofs=0", url.Values{}, &resultmap)
+	if err != nil {
+		return nil, err
+	}
+
+	var allTrades []Trade
+	for _, trade := range resultmap {
+		singleTrade := k.toTrade(trade)
+		allTrades = append(allTrades, singleTrade)
+	}
+	return allTrades, err
+
 }
 
 func (k *Kraken) GetAccount() (*Account, error) {
