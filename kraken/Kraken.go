@@ -129,21 +129,20 @@ func (exchange *Exchange) toOrder(orderinfo interface{}) Order {
 
 func (exchange *Exchange) toTrade(tradeinfo interface{}) Trade {
 	tmap := tradeinfo.(map[string]interface{})
-	descmap := tmap["trades"].(map[string]interface{})
-	pair := descmap["pair"].(string)
+	pair := tmap["pair"].(string)
 	ind := strings.Index(pair, "EUR")
 	curr := Currency{Symbol: pair[:ind], Desc: ""}
 	fiat := Currency{Symbol: pair[ind:], Desc: ""}
 	currency := CurrencyPair{CurrencyA: curr, CurrencyB: fiat}
 	return Trade{
-		Amount:    ToFloat64(descmap["vol"]),
-		Price:     ToFloat64(descmap["price"]),
-		OrderType: AdaptTradeSide(descmap["type"].(string)),
-		Fee:       ToFloat64(descmap["fee"]),
-		OrderTime: ToInt(descmap["time"]),
+		Amount:    ToFloat64(tmap["vol"]),
+		Price:     ToFloat64(tmap["price"]),
+		OrderType: AdaptTradeSide(tmap["type"].(string)),
+		Fee:       ToFloat64(tmap["fee"]),
+		OrderTime: ToInt(tmap["time"]),
 		Pair:      currency,
-		OrderID2:  descmap["ordertxid"].(string),
-		Tid:       ToInt64(tmap["txid"]),
+		OrderID2:  tmap["ordertxid"].(string),
+		TradeID:   tmap["postxid"].(string),
 	}
 }
 
