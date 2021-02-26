@@ -27,7 +27,7 @@ type NewOrderResponse struct {
 	TxIds       []string    `json:"txid"`
 }
 
-type Kraken struct {
+type Exchange struct {
 	httpClient *http.Client
 	accessKey,
 	secretKey string
@@ -41,22 +41,22 @@ var (
 	PRIVATE    = "private/"
 )
 
-func New(client *http.Client, accesskey, secretkey string) *Kraken {
-	return &Kraken{client, accesskey, secretkey}
+func New(client *http.Client, accesskey, secretkey string) *Exchange {
+	return &Exchange{client, accesskey, secretkey}
 }
 
-func (k *Kraken) placeOrder(orderType, side, amount, price string, pair CurrencyPair) (*Order, error) {
+func (exchange *Exchange) placeOrder(orderType, side, amount, price string, pair CurrencyPair) (*Order, error) {
 	apiuri := PRIVATE + "AddOrder"
 
 	params := url.Values{}
-	params.Set("pair", k.convertPair(pair).ToSymbol(""))
+	params.Set("pair", exchange.convertPair(pair).ToSymbol(""))
 	params.Set("type", side)
 	params.Set("ordertype", orderType)
 	params.Set("price", price)
 	params.Set("volume", amount)
 
 	var resp NewOrderResponse
-	err := k.doAuthenticatedRequest("POST", apiuri, params, &resp)
+	err := exchange.doAuthenticatedRequest("POST", apiuri, params, &resp)
 	//log.Println
 	if err != nil {
 		return nil, err
@@ -76,29 +76,29 @@ func (k *Kraken) placeOrder(orderType, side, amount, price string, pair Currency
 		Status:   ORDER_UNFINISH}, nil
 }
 
-func (k *Kraken) LimitBuy(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
-	return k.placeOrder("limit", "buy", amount, price, currency)
+func (exchange *Exchange) LimitBuy(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
+	return exchange.placeOrder("limit", "buy", amount, price, currency)
 }
 
-func (k *Kraken) LimitSell(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
-	return k.placeOrder("limit", "sell", amount, price, currency)
+func (exchange *Exchange) LimitSell(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
+	return exchange.placeOrder("limit", "sell", amount, price, currency)
 }
 
-func (k *Kraken) MarketBuy(amount, price string, currency CurrencyPair) (*Order, error) {
-	return k.placeOrder("market", "buy", amount, price, currency)
+func (exchange *Exchange) MarketBuy(amount, price string, currency CurrencyPair) (*Order, error) {
+	return exchange.placeOrder("market", "buy", amount, price, currency)
 }
 
-func (k *Kraken) MarketSell(amount, price string, currency CurrencyPair) (*Order, error) {
-	return k.placeOrder("market", "sell", amount, price, currency)
+func (exchange *Exchange) MarketSell(amount, price string, currency CurrencyPair) (*Order, error) {
+	return exchange.placeOrder("market", "sell", amount, price, currency)
 }
 
-func (k *Kraken) CancelOrder(orderId string, currency CurrencyPair) (bool, error) {
+func (exchange *Exchange) CancelOrder(orderId string, currency CurrencyPair) (bool, error) {
 	params := url.Values{}
 	apiuri := PRIVATE + "CancelOrder"
 	params.Set("txid", orderId)
 
 	var respmap map[string]interface{}
-	err := k.doAuthenticatedRequest("POST", apiuri, params, &respmap)
+	err := exchange.doAuthenticatedRequest("POST", apiuri, params, &respmap)
 	if err != nil {
 		return false, err
 	}
@@ -106,7 +106,7 @@ func (k *Kraken) CancelOrder(orderId string, currency CurrencyPair) (bool, error
 	return true, nil
 }
 
-func (k *Kraken) toOrder(orderinfo interface{}) Order {
+func (exchange *Exchange) toOrder(orderinfo interface{}) Order {
 	omap := orderinfo.(map[string]interface{})
 	descmap := omap["descr"].(map[string]interface{})
 	pair := descmap["pair"].(string)
@@ -120,14 +120,14 @@ func (k *Kraken) toOrder(orderinfo interface{}) Order {
 		DealAmount: ToFloat64(omap["vol_exec"]),
 		AvgPrice:   ToFloat64(omap["price"]),
 		Side:       AdaptTradeSide(descmap["type"].(string)),
-		Status:     k.convertOrderStatus(omap["status"].(string)),
+		Status:     exchange.convertOrderStatus(omap["status"].(string)),
 		Fee:        ToFloat64(omap["fee"]),
 		OrderTime:  ToInt(omap["opentm"]),
 		Currency:   currency,
 	}
 }
 
-func (k *Kraken) toTrade(tradeinfo interface{}) Trade {
+func (exchange *Exchange) toTrade(tradeinfo interface{}) Trade {
 	tmap := tradeinfo.(map[string]interface{})
 	descmap := tmap["trades"].(map[string]interface{})
 	pair := descmap["pair"].(string)
@@ -147,19 +147,19 @@ func (k *Kraken) toTrade(tradeinfo interface{}) Trade {
 	}
 }
 
-func (k *Kraken) GetOrderInfos(txids ...string) ([]Order, error) {
+func (exchange *Exchange) GetOrderInfos(txids ...string) ([]Order, error) {
 	params := url.Values{}
 	params.Set("txid", strings.Join(txids, ","))
 
 	var resultmap map[string]interface{}
-	err := k.doAuthenticatedRequest("POST", PRIVATE+"QueryOrders", params, &resultmap)
+	err := exchange.doAuthenticatedRequest("POST", PRIVATE+"QueryOrders", params, &resultmap)
 	if err != nil {
 		return nil, err
 	}
 	//log.Println(resultmap)
 	var ords []Order
 	for txid, v := range resultmap {
-		ord := k.toOrder(v)
+		ord := exchange.toOrder(v)
 		ord.OrderID2 = txid
 		ords = append(ords, ord)
 	}
@@ -167,8 +167,8 @@ func (k *Kraken) GetOrderInfos(txids ...string) ([]Order, error) {
 	return ords, nil
 }
 
-func (k *Kraken) GetOneOrder(orderId string, currency CurrencyPair) (*Order, error) {
-	orders, err := k.GetOrderInfos(orderId)
+func (exchange *Exchange) GetOneOrder(orderId string, currency CurrencyPair) (*Order, error) {
+	orders, err := exchange.GetOrderInfos(orderId)
 
 	if err != nil {
 		return nil, err
@@ -183,12 +183,12 @@ func (k *Kraken) GetOneOrder(orderId string, currency CurrencyPair) (*Order, err
 	return ord, nil
 }
 
-func (k *Kraken) GetUnfinishOrders(currency CurrencyPair) ([]Order, error) {
+func (exchange *Exchange) GetUnfinishOrders(currency CurrencyPair) ([]Order, error) {
 	var result struct {
 		Open map[string]interface{} `json:"open"`
 	}
 
-	err := k.doAuthenticatedRequest("POST", PRIVATE+"OpenOrders", url.Values{}, &result)
+	err := exchange.doAuthenticatedRequest("POST", PRIVATE+"OpenOrders", url.Values{}, &result)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +196,7 @@ func (k *Kraken) GetUnfinishOrders(currency CurrencyPair) ([]Order, error) {
 	var orders []Order
 
 	for txid, v := range result.Open {
-		ord := k.toOrder(v)
+		ord := exchange.toOrder(v)
 		ord.OrderID2 = txid
 		orders = append(orders, ord)
 	}
@@ -204,39 +204,42 @@ func (k *Kraken) GetUnfinishOrders(currency CurrencyPair) ([]Order, error) {
 	return orders, nil
 }
 
-func (k *Kraken) GetOrderHistorys(currency CurrencyPair, optional ...OptionalParameter) ([]Trade, error) {
+func (exchange *Exchange) GetOrderHistorys(currency CurrencyPair, optional ...OptionalParameter) ([]Order, error) {
+	panic("")
+}
+
+func (exchange *Exchange) GetTradeHistory(currency CurrencyPair, optional ...OptionalParameter) ([]Trade, error) {
 	var resultmap map[string]map[string]interface{}
 
-	err := k.doAuthenticatedRequest("POST", PRIVATE+"TradesHistory?ofs=0", url.Values{}, &resultmap)
+	err := exchange.doAuthenticatedRequest("POST", PRIVATE+"TradesHistory?ofs=0", url.Values{}, &resultmap)
 	if err != nil {
 		return nil, err
 	}
 
 	var allTrades []Trade
 	for _, trade := range resultmap {
-		singleTrade := k.toTrade(trade)
+		singleTrade := exchange.toTrade(trade)
 		allTrades = append(allTrades, singleTrade)
 	}
 	return allTrades, err
-
 }
 
-func (k *Kraken) GetAccount() (*Account, error) {
+func (exchange *Exchange) GetAccount() (*Account, error) {
 	params := url.Values{}
 	apiuri := PRIVATE + "Balance"
 
 	var resustmap map[string]interface{}
-	err := k.doAuthenticatedRequest("POST", apiuri, params, &resustmap)
+	err := exchange.doAuthenticatedRequest("POST", apiuri, params, &resustmap)
 	if err != nil {
 		return nil, err
 	}
 
 	acc := new(Account)
-	acc.Exchange = k.GetExchangeName()
+	acc.Exchange = exchange.GetExchangeName()
 	acc.SubAccounts = make(map[Currency]SubAccount)
 
 	for key, v := range resustmap {
-		currency := k.convertCurrency(key)
+		currency := exchange.convertCurrency(key)
 		amount := ToFloat64(v)
 		//log.Println(symbol, amount)
 		acc.SubAccounts[currency] = SubAccount{Currency: currency, Amount: amount, ForzenAmount: 0, LoanAmount: 0}
@@ -250,21 +253,21 @@ func (k *Kraken) GetAccount() (*Account, error) {
 
 }
 
-//func (k *Kraken) GetTradeBalance() {
+//func (exchange *Kraken) GetTradeBalance() {
 //	var resultmap map[string]interface{}
 //	k.doAuthenticatedRequest("POST", PRIVATE+"TradeBalance", url.Values{}, &resultmap)
 //	log.Println(resultmap)
 //}
 
 // GetAssets will return the full list of currency pairs available
-func (k *Kraken) GetAssets(currency CurrencyPair) (*Assets, error) {
+func (exchange *Exchange) GetAssets(currency CurrencyPair) (*Assets, error) {
 	var resultmap map[string]map[string]interface{}
 	assets := new(Assets)
-	assetName := k.convertPair(currency).ToSymbol("")
+	assetName := exchange.convertPair(currency).ToSymbol("")
 	if assetName == "all_" {
 		assetName = "all"
 	}
-	err := k.doAuthenticatedRequest("GET", PUBLIC+"AssetPairs?asset="+assetName, url.Values{}, &resultmap)
+	err := exchange.doAuthenticatedRequest("GET", PUBLIC+"AssetPairs?asset="+assetName, url.Values{}, &resultmap)
 	if err != nil {
 		return nil, err
 	}
@@ -275,9 +278,9 @@ func (k *Kraken) GetAssets(currency CurrencyPair) (*Assets, error) {
 	return assets, err
 }
 
-func (k *Kraken) GetTicker(currency CurrencyPair) (*Ticker, error) {
+func (exchange *Exchange) GetTicker(currency CurrencyPair) (*Ticker, error) {
 	var resultmap map[string]interface{}
-	err := k.doAuthenticatedRequest("GET", "public/Ticker?pair="+k.convertPair(currency).ToSymbol(""), url.Values{}, &resultmap)
+	err := exchange.doAuthenticatedRequest("GET", "public/Ticker?pair="+exchange.convertPair(currency).ToSymbol(""), url.Values{}, &resultmap)
 	if err != nil {
 		return nil, err
 	}
@@ -297,10 +300,10 @@ func (k *Kraken) GetTicker(currency CurrencyPair) (*Ticker, error) {
 	return ticker, nil
 }
 
-func (k *Kraken) GetDepth(size int, currency CurrencyPair) (*Depth, error) {
-	apiuri := fmt.Sprintf(PUBLIC+"Depth?pair=%s&count=%d", k.convertPair(currency).ToSymbol(""), size)
+func (exchange *Exchange) GetDepth(size int, currency CurrencyPair) (*Depth, error) {
+	apiuri := fmt.Sprintf(PUBLIC+"Depth?pair=%s&count=%d", exchange.convertPair(currency).ToSymbol(""), size)
 	var resultmap map[string]interface{}
-	err := k.doAuthenticatedRequest("GET", apiuri, url.Values{}, &resultmap)
+	err := exchange.doAuthenticatedRequest("GET", apiuri, url.Values{}, &resultmap)
 	if err != nil {
 		return nil, err
 	}
@@ -328,24 +331,24 @@ func (k *Kraken) GetDepth(size int, currency CurrencyPair) (*Depth, error) {
 	return &dep, nil
 }
 
-func (k *Kraken) GetKlineRecords(currency CurrencyPair, period KlinePeriod, size int, opt ...OptionalParameter) ([]Kline, error) {
+func (exchange *Exchange) GetKlineRecords(currency CurrencyPair, period KlinePeriod, size int, opt ...OptionalParameter) ([]Kline, error) {
 	panic("")
 }
 
 //非个人，整个交易所的交易记录
-func (k *Kraken) GetTrades(currencyPair CurrencyPair, since int64) ([]Trade, error) {
+func (exchange *Exchange) GetTrades(currencyPair CurrencyPair, since int64) ([]Trade, error) {
 	panic("")
 }
 
-func (k *Kraken) GetExchangeName() string {
+func (exchange *Exchange) GetExchangeName() string {
 	return KRAKEN
 }
 
-func (k *Kraken) buildParamsSigned(apiuri string, postForm *url.Values) string {
+func (exchange *Exchange) buildParamsSigned(apiuri string, postForm *url.Values) string {
 	postForm.Set("nonce", fmt.Sprintf("%d", time.Now().UnixNano()))
 	urlPath := API_V0 + apiuri
 
-	secretByte, _ := base64.StdEncoding.DecodeString(k.secretKey)
+	secretByte, _ := base64.StdEncoding.DecodeString(exchange.secretKey)
 	encode := []byte(postForm.Get("nonce") + postForm.Encode())
 
 	sha := sha256.New()
@@ -363,18 +366,18 @@ func (k *Kraken) buildParamsSigned(apiuri string, postForm *url.Values) string {
 	return sign
 }
 
-func (k *Kraken) doAuthenticatedRequest(method, apiuri string, params url.Values, ret interface{}) error {
+func (exchange *Exchange) doAuthenticatedRequest(method, apiuri string, params url.Values, ret interface{}) error {
 	headers := map[string]string{}
 
 	if "POST" == method {
-		signature := k.buildParamsSigned(apiuri, &params)
+		signature := exchange.buildParamsSigned(apiuri, &params)
 		headers = map[string]string{
-			"API-Key":  k.accessKey,
+			"API-Key":  exchange.accessKey,
 			"API-Sign": signature,
 		}
 	}
 
-	resp, err := NewHttpRequest(k.httpClient, method, API_DOMAIN+apiuri, params.Encode(), headers)
+	resp, err := NewHttpRequest(exchange.httpClient, method, API_DOMAIN+apiuri, params.Encode(), headers)
 	if err != nil {
 		return err
 	}
@@ -396,7 +399,7 @@ func (k *Kraken) doAuthenticatedRequest(method, apiuri string, params url.Values
 	return nil
 }
 
-func (k *Kraken) convertCurrency(currencySymbol string) Currency {
+func (exchange *Exchange) convertCurrency(currencySymbol string) Currency {
 	if len(currencySymbol) >= 4 {
 		currencySymbol = strings.Replace(currencySymbol, "X", "", 1)
 		currencySymbol = strings.Replace(currencySymbol, "Z", "", 1)
@@ -404,7 +407,7 @@ func (k *Kraken) convertCurrency(currencySymbol string) Currency {
 	return NewCurrency(currencySymbol, "")
 }
 
-func (k *Kraken) convertPair(pair CurrencyPair) CurrencyPair {
+func (exchange *Exchange) convertPair(pair CurrencyPair) CurrencyPair {
 	if "BTC" == pair.CurrencyA.Symbol {
 		return NewCurrencyPair(XBT, pair.CurrencyB)
 	}
@@ -416,7 +419,7 @@ func (k *Kraken) convertPair(pair CurrencyPair) CurrencyPair {
 	return pair
 }
 
-func (k *Kraken) convertOrderStatus(status string) TradeStatus {
+func (exchange *Exchange) convertOrderStatus(status string) TradeStatus {
 	switch status {
 	case "open", "pending":
 		return ORDER_UNFINISH

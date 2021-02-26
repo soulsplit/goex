@@ -14,7 +14,7 @@ import (
 )
 
 type OKExV3SpotWs struct {
-	base           *OKEx
+	base           *Exchange
 	v3Ws           *OKExV3Ws
 	tickerCallback func(*Ticker)
 	depthCallback  func(*Depth)
@@ -22,7 +22,7 @@ type OKExV3SpotWs struct {
 	klineCallback  func(*Kline, KlinePeriod)
 }
 
-func NewOKExSpotV3Ws(base *OKEx) *OKExV3SpotWs {
+func NewOKExSpotV3Ws(base *Exchange) *OKExV3SpotWs {
 	okV3Ws := &OKExV3SpotWs{
 		base: base,
 	}

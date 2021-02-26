@@ -14,7 +14,7 @@ const (
 )
 
 type OKExWallet struct {
-	*OKEx
+	*Exchange
 }
 
 func (ok *OKExWallet) GetAccount() (*Account, error) {

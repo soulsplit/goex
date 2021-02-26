@@ -29,23 +29,23 @@ const (
 	CANCELWITHDRAW_API        = "cancelWithdraw"
 )
 
-type Zb struct {
+type Exchange struct {
 	httpClient *http.Client
 	accessKey,
 	secretKey string
 }
 
-func New(httpClient *http.Client, accessKey, secretKey string) *Zb {
-	return &Zb{httpClient, accessKey, secretKey}
+func New(httpClient *http.Client, accessKey, secretKey string) *Exchange {
+	return &Exchange{httpClient, accessKey, secretKey}
 }
 
-func (zb *Zb) GetExchangeName() string {
+func (exchange *Exchange) GetExchangeName() string {
 	return ZB
 }
 
-func (zb *Zb) GetTicker(currency CurrencyPair) (*Ticker, error) {
+func (exchange *Exchange) GetTicker(currency CurrencyPair) (*Ticker, error) {
 	symbol := currency.ToSymbol("_")
-	resp, err := HttpGet(zb.httpClient, MARKET_URL+fmt.Sprintf(TICKER_API, symbol))
+	resp, err := HttpGet(exchange.httpClient, MARKET_URL+fmt.Sprintf(TICKER_API, symbol))
 	if err != nil {
 		return nil, err
 	}
@@ -65,9 +65,9 @@ func (zb *Zb) GetTicker(currency CurrencyPair) (*Ticker, error) {
 	return ticker, nil
 }
 
-func (zb *Zb) GetDepth(size int, currency CurrencyPair) (*Depth, error) {
+func (exchange *Exchange) GetDepth(size int, currency CurrencyPair) (*Depth, error) {
 	symbol := currency.ToSymbol("_")
-	resp, err := HttpGet(zb.httpClient, MARKET_URL+fmt.Sprintf(DEPTH_API, symbol, size))
+	resp, err := HttpGet(exchange.httpClient, MARKET_URL+fmt.Sprintf(DEPTH_API, symbol, size))
 	if err != nil {
 		return nil, err
 	}
@@ -107,11 +107,11 @@ func (zb *Zb) GetDepth(size int, currency CurrencyPair) (*Depth, error) {
 	return depth, nil
 }
 
-func (zb *Zb) buildPostForm(postForm *url.Values) error {
-	postForm.Set("accesskey", zb.accessKey)
+func (exchange *Exchange) buildPostForm(postForm *url.Values) error {
+	postForm.Set("accesskey", exchange.accessKey)
 
 	payload := postForm.Encode()
-	secretkeySha, _ := GetSHA(zb.secretKey)
+	secretkeySha, _ := GetSHA(exchange.secretKey)
 
 	sign, err := GetParamHmacMD5Sign(secretkeySha, payload)
 	if err != nil {
@@ -124,12 +124,12 @@ func (zb *Zb) buildPostForm(postForm *url.Values) error {
 	return nil
 }
 
-func (zb *Zb) GetAccount() (*Account, error) {
+func (exchange *Exchange) GetAccount() (*Account, error) {
 	params := url.Values{}
 	params.Set("method", "getAccountInfo")
-	zb.buildPostForm(&params)
+	exchange.buildPostForm(&params)
 	//log.Println(params.Encode())
-	resp, err := HttpPostForm(zb.httpClient, TRADE_URL+GET_ACCOUNT_API, params)
+	resp, err := HttpPostForm(exchange.httpClient, TRADE_URL+GET_ACCOUNT_API, params)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +146,7 @@ func (zb *Zb) GetAccount() (*Account, error) {
 	}
 
 	acc := new(Account)
-	acc.Exchange = zb.GetExchangeName()
+	acc.Exchange = exchange.GetExchangeName()
 	acc.SubAccounts = make(map[Currency]SubAccount)
 
 	resultmap := respmap["result"].(map[string]interface{})
@@ -170,7 +170,7 @@ func (zb *Zb) GetAccount() (*Account, error) {
 	return acc, nil
 }
 
-func (zb *Zb) placeOrder(amount, price string, currency CurrencyPair, tradeType int) (*Order, error) {
+func (exchange *Exchange) placeOrder(amount, price string, currency CurrencyPair, tradeType int) (*Order, error) {
 	symbol := currency.ToSymbol("_")
 	params := url.Values{}
 	params.Set("method", "order")
@@ -178,9 +178,9 @@ func (zb *Zb) placeOrder(amount, price string, currency CurrencyPair, tradeType 
 	params.Set("amount", amount)
 	params.Set("currency", symbol)
 	params.Set("tradeType", fmt.Sprintf("%d", tradeType))
-	zb.buildPostForm(&params)
+	exchange.buildPostForm(&params)
 
-	resp, err := HttpPostForm(zb.httpClient, TRADE_URL+PLACE_ORDER_API, params)
+	resp, err := HttpPostForm(exchange.httpClient, TRADE_URL+PLACE_ORDER_API, params)
 	if err != nil {
 		log.Println(err)
 		return nil, err
@@ -221,23 +221,23 @@ func (zb *Zb) placeOrder(amount, price string, currency CurrencyPair, tradeType 
 	return order, nil
 }
 
-func (zb *Zb) LimitBuy(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
-	return zb.placeOrder(amount, price, currency, 1)
+func (exchange *Exchange) LimitBuy(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
+	return exchange.placeOrder(amount, price, currency, 1)
 }
 
-func (zb *Zb) LimitSell(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
-	return zb.placeOrder(amount, price, currency, 0)
+func (exchange *Exchange) LimitSell(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
+	return exchange.placeOrder(amount, price, currency, 0)
 }
 
-func (zb *Zb) CancelOrder(orderId string, currency CurrencyPair) (bool, error) {
+func (exchange *Exchange) CancelOrder(orderId string, currency CurrencyPair) (bool, error) {
 	symbol := currency.ToSymbol("-")
 	params := url.Values{}
 	params.Set("method", "cancelOrder")
 	params.Set("id", orderId)
 	params.Set("currency", symbol)
-	zb.buildPostForm(&params)
+	exchange.buildPostForm(&params)
 
-	resp, err := HttpPostForm(zb.httpClient, TRADE_URL+CANCEL_ORDER_API, params)
+	resp, err := HttpPostForm(exchange.httpClient, TRADE_URL+CANCEL_ORDER_API, params)
 	if err != nil {
 		log.Println(err)
 		return false, err
@@ -301,15 +301,15 @@ func parseOrder(order *Order, ordermap map[string]interface{}) {
 
 }
 
-func (zb *Zb) GetOneOrder(orderId string, currency CurrencyPair) (*Order, error) {
+func (exchange *Exchange) GetOneOrder(orderId string, currency CurrencyPair) (*Order, error) {
 	symbol := currency.ToSymbol("_")
 	params := url.Values{}
 	params.Set("method", "getOrder")
 	params.Set("id", orderId)
 	params.Set("currency", symbol)
-	zb.buildPostForm(&params)
+	exchange.buildPostForm(&params)
 
-	resp, err := HttpPostForm(zb.httpClient, TRADE_URL+GET_ORDER_API, params)
+	resp, err := HttpPostForm(exchange.httpClient, TRADE_URL+GET_ORDER_API, params)
 	if err != nil {
 		log.Println(err)
 		return nil, err
@@ -330,16 +330,16 @@ func (zb *Zb) GetOneOrder(orderId string, currency CurrencyPair) (*Order, error)
 	return order, nil
 }
 
-func (zb *Zb) GetUnfinishOrders(currency CurrencyPair) ([]Order, error) {
+func (exchange *Exchange) GetUnfinishOrders(currency CurrencyPair) ([]Order, error) {
 	params := url.Values{}
 	symbol := currency.ToSymbol("_")
 	params.Set("method", "getUnfinishedOrdersIgnoreTradeType")
 	params.Set("currency", symbol)
 	params.Set("pageIndex", "1")
 	params.Set("pageSize", "100")
-	zb.buildPostForm(&params)
+	exchange.buildPostForm(&params)
 
-	resp, err := HttpPostForm(zb.httpClient, TRADE_URL+GET_UNFINISHED_ORDERS_API, params)
+	resp, err := HttpPostForm(exchange.httpClient, TRADE_URL+GET_UNFINISHED_ORDERS_API, params)
 	if err != nil {
 		log.Println(err)
 		return nil, err
@@ -372,15 +372,15 @@ func (zb *Zb) GetUnfinishOrders(currency CurrencyPair) ([]Order, error) {
 	return orders, nil
 }
 
-func (zb *Zb) GetOrderHistorys(currency CurrencyPair, opt ...OptionalParameter) ([]Order, error) {
+func (exchange *Exchange) GetOrderHistorys(currency CurrencyPair, opt ...OptionalParameter) ([]Order, error) {
 	return nil, nil
 }
 
-func (zb *Zb) GetKlineRecords(currency CurrencyPair, period KlinePeriod, size int, opt ...OptionalParameter) ([]Kline, error) {
+func (exchange *Exchange) GetKlineRecords(currency CurrencyPair, period KlinePeriod, size int, opt ...OptionalParameter) ([]Kline, error) {
 	return nil, nil
 }
 
-func (zb *Zb) Withdraw(amount string, currency Currency, fees, receiveAddr, safePwd string) (string, error) {
+func (exchange *Exchange) Withdraw(amount string, currency Currency, fees, receiveAddr, safePwd string) (string, error) {
 	params := url.Values{}
 	params.Set("method", "withdraw")
 	params.Set("currency", strings.ToLower(currency.AdaptBchToBcc().String()))
@@ -388,9 +388,9 @@ func (zb *Zb) Withdraw(amount string, currency Currency, fees, receiveAddr, safe
 	params.Set("fees", fees)
 	params.Set("receiveAddr", receiveAddr)
 	params.Set("safePwd", safePwd)
-	zb.buildPostForm(&params)
+	exchange.buildPostForm(&params)
 
-	resp, err := HttpPostForm(zb.httpClient, TRADE_URL+WITHDRAW_API, params)
+	resp, err := HttpPostForm(exchange.httpClient, TRADE_URL+WITHDRAW_API, params)
 	if err != nil {
 		log.Println("withdraw fail.", err)
 		return "", err
@@ -410,15 +410,15 @@ func (zb *Zb) Withdraw(amount string, currency Currency, fees, receiveAddr, safe
 	return "", errors.New(string(resp))
 }
 
-func (zb *Zb) CancelWithdraw(id string, currency Currency, safePwd string) (bool, error) {
+func (exchange *Exchange) CancelWithdraw(id string, currency Currency, safePwd string) (bool, error) {
 	params := url.Values{}
 	params.Set("method", "cancelWithdraw")
 	params.Set("currency", strings.ToLower(currency.AdaptBchToBcc().String()))
 	params.Set("downloadId", id)
 	params.Set("safePwd", safePwd)
-	zb.buildPostForm(&params)
+	exchange.buildPostForm(&params)
 
-	resp, err := HttpPostForm(zb.httpClient, TRADE_URL+CANCELWITHDRAW_API, params)
+	resp, err := HttpPostForm(exchange.httpClient, TRADE_URL+CANCELWITHDRAW_API, params)
 	if err != nil {
 		log.Println("cancel withdraw fail.", err)
 		return false, err
@@ -438,18 +438,22 @@ func (zb *Zb) CancelWithdraw(id string, currency Currency, safePwd string) (bool
 	return false, errors.New(string(resp))
 }
 
-func (zb *Zb) GetTrades(currencyPair CurrencyPair, since int64) ([]Trade, error) {
+func (exchange *Exchange) GetTrades(currencyPair CurrencyPair, since int64) ([]Trade, error) {
 	panic("unimplements")
 }
 
-func (zb *Zb) MarketBuy(amount, price string, currency CurrencyPair) (*Order, error) {
+func (exchange *Exchange) MarketBuy(amount, price string, currency CurrencyPair) (*Order, error) {
 	panic("unsupport the market order")
 }
 
-func (zb *Zb) MarketSell(amount, price string, currency CurrencyPair) (*Order, error) {
+func (exchange *Exchange) MarketSell(amount, price string, currency CurrencyPair) (*Order, error) {
 	panic("unsupport the market order")
 }
 
-func (zb *Zb) GetAssets(currency CurrencyPair) (*Assets, error) {
+func (exchange *Exchange) GetAssets(currency CurrencyPair) (*Assets, error) {
+	panic("")
+}
+
+func (exchange *Exchange) GetTradeHistory(currency CurrencyPair, optional ...OptionalParameter) ([]Trade, error) {
 	panic("")
 }

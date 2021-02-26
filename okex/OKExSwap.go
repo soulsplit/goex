@@ -91,12 +91,12 @@ type BaseResponse struct {
 }
 
 type OKExSwap struct {
-	*OKEx
+	*Exchange
 	config *APIConfig
 }
 
 func NewOKExSwap(config *APIConfig) *OKExSwap {
-	return &OKExSwap{OKEx: &OKEx{config: config}, config: config}
+	return &OKExSwap{Exchange: &Exchange{config: config}, config: config}
 }
 
 func (ok *OKExSwap) GetExchangeName() string {
@@ -208,7 +208,7 @@ func (ok *OKExSwap) GetFutureUserinfo(currencyPair ...CurrencyPair) (*FutureAcco
 		goto wrapperF
 	}
 
-	err = ok.OKEx.DoRequest("GET", GET_ACCOUNTS, "", &infos)
+	err = ok.Exchange.DoRequest("GET", GET_ACCOUNTS, "", &infos)
 	if err != nil {
 		return nil, err
 	}
@@ -237,7 +237,7 @@ func (ok *OKExSwap) GetFutureAccountInfo(currency CurrencyPair) (*SwapAccountInf
 		Info SwapAccountInfo `json:"info"`
 	}
 
-	err := ok.OKEx.DoRequest("GET", fmt.Sprintf("/api/swap/v3/%s/accounts", ok.adaptContractType(currency)), "", &infos)
+	err := ok.Exchange.DoRequest("GET", fmt.Sprintf("/api/swap/v3/%s/accounts", ok.adaptContractType(currency)), "", &infos)
 	if err != nil {
 		return nil, err
 	}
@@ -301,7 +301,7 @@ func (ok *OKExSwap) PlaceFutureOrder2(currencyPair CurrencyPair, contractType, p
 		}
 	}
 
-	reqBody, _, _ := ok.OKEx.BuildRequestBody(param)
+	reqBody, _, _ := ok.Exchange.BuildRequestBody(param)
 
 	fOrder := &FutureOrder{
 		ClientOid:    cid,

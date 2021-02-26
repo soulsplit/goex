@@ -24,15 +24,15 @@ type PoloniexMarginPosition struct {
 	Type              string  `json:"type"`
 }
 
-func (poloniex *Poloniex) MarginLimitBuy(amount, price string, currency CurrencyPair) (*Order, error) {
+func (poloniex *Exchange) MarginLimitBuy(amount, price string, currency CurrencyPair) (*Order, error) {
 	return poloniex.placeLimitOrder("marginBuy", amount, price, currency)
 }
 
-func (poloniex *Poloniex) MarginLimitSell(amount, price string, currency CurrencyPair) (*Order, error) {
+func (poloniex *Exchange) MarginLimitSell(amount, price string, currency CurrencyPair) (*Order, error) {
 	return poloniex.placeLimitOrder("marginSell", amount, price, currency)
 }
 
-func (poloniex *Poloniex) GetMarginPosition(currency CurrencyPair) (*PoloniexMarginPosition, error) {
+func (poloniex *Exchange) GetMarginPosition(currency CurrencyPair) (*PoloniexMarginPosition, error) {
 	values := url.Values{}
 	values.Set("command", "getMarginPosition")
 	values.Set("currencyPair", currency.AdaptUsdToUsdt().Reverse().ToSymbol("_"))
@@ -44,7 +44,7 @@ func (poloniex *Poloniex) GetMarginPosition(currency CurrencyPair) (*PoloniexMar
 	return &result, nil
 }
 
-func (poloniex *Poloniex) CloseMarginPosition(currency CurrencyPair) (bool, error) {
+func (poloniex *Exchange) CloseMarginPosition(currency CurrencyPair) (bool, error) {
 	values := url.Values{}
 	values.Set("command", "closeMarginPosition")
 	values.Set("currencyPair", currency.AdaptUsdToUsdt().Reverse().ToSymbol("_"))
@@ -59,7 +59,7 @@ func (poloniex *Poloniex) CloseMarginPosition(currency CurrencyPair) (bool, erro
 	return true, nil
 }
 
-func (poloniex *Poloniex) sendAuthenticatedRequest(values url.Values, result interface{}) error {
+func (poloniex *Exchange) sendAuthenticatedRequest(values url.Values, result interface{}) error {
 	sign, _ := poloniex.buildPostForm(&values)
 
 	headers := map[string]string{

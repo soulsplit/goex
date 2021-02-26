@@ -11,7 +11,7 @@ import (
 )
 
 type Wallet struct {
-	ba   *Binance
+	ba   *Exchange
 	conf *APIConfig
 }
 

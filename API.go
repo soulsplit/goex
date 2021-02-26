@@ -11,6 +11,7 @@ type API interface {
 	GetOneOrder(orderId string, currency CurrencyPair) (*Order, error)
 	GetUnfinishOrders(currency CurrencyPair) ([]Order, error)
 	GetOrderHistorys(currency CurrencyPair, opt ...OptionalParameter) ([]Order, error)
+	GetTradeHistory(currency CurrencyPair, opt ...OptionalParameter) ([]Trade, error)
 	GetAccount() (*Account, error)
 
 	GetTicker(currency CurrencyPair) (*Ticker, error)
@@ -20,6 +21,6 @@ type API interface {
 	GetTrades(currencyPair CurrencyPair, since int64) ([]Trade, error)
 
 	GetExchangeName() string
-	
+
 	GetAssets(currencyPair CurrencyPair) (*Assets, error)
 }

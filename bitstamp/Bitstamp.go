@@ -18,32 +18,32 @@ var (
 	BASE_URL = "https://www.bitstamp.net/api/"
 )
 
-type Bitstamp struct {
+type Exchange struct {
 	client *http.Client
 	clientId,
 	accessKey,
 	secretkey string
 }
 
-func NewBitstamp(client *http.Client, accessKey, secertkey, clientId string) *Bitstamp {
-	return &Bitstamp{client: client, accessKey: accessKey, secretkey: secertkey, clientId: clientId}
+func NewBitstamp(client *http.Client, accessKey, secertkey, clientId string) *Exchange {
+	return &Exchange{client: client, accessKey: accessKey, secretkey: secertkey, clientId: clientId}
 }
 
-func (bitstamp *Bitstamp) buildPostForm(params *url.Values) {
+func (exchange *Exchange) buildPostForm(params *url.Values) {
 	nonce := time.Now().UnixNano()
 	//println(nonce)
-	payload := fmt.Sprintf("%d%s%s", nonce, bitstamp.clientId, bitstamp.accessKey)
-	sign, _ := GetParamHmacSHA256Sign(bitstamp.secretkey, payload)
+	payload := fmt.Sprintf("%d%s%s", nonce, exchange.clientId, exchange.accessKey)
+	sign, _ := GetParamHmacSHA256Sign(exchange.secretkey, payload)
 	params.Set("signature", strings.ToUpper(sign))
 	params.Set("nonce", fmt.Sprintf("%d", nonce))
-	params.Set("key", bitstamp.accessKey)
+	params.Set("key", exchange.accessKey)
 }
 
-func (bitstamp *Bitstamp) GetAccount() (*Account, error) {
+func (exchange *Exchange) GetAccount() (*Account, error) {
 	urlStr := fmt.Sprintf("%s%s", BASE_URL, "v2/balance/")
 	params := url.Values{}
-	bitstamp.buildPostForm(&params)
-	resp, err := HttpPostForm(bitstamp.client, urlStr, params)
+	exchange.buildPostForm(&params)
+	resp, err := HttpPostForm(exchange.client, urlStr, params)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (bitstamp *Bitstamp) GetAccount() (*Account, error) {
 	}
 
 	acc := Account{}
-	acc.Exchange = bitstamp.GetExchangeName()
+	acc.Exchange = exchange.GetExchangeName()
 	acc.SubAccounts = make(map[Currency]SubAccount)
 	acc.SubAccounts[BTC] = SubAccount{
 		Currency:     BTC,
@@ -116,15 +116,15 @@ func (bitstamp *Bitstamp) GetAccount() (*Account, error) {
 	return &acc, nil
 }
 
-func (bitstamp *Bitstamp) placeOrder(side string, pair CurrencyPair, amount, price, urlStr string) (*Order, error) {
+func (exchange *Exchange) placeOrder(side string, pair CurrencyPair, amount, price, urlStr string) (*Order, error) {
 	params := url.Values{}
 	params.Set("amount", amount)
 	if price != "" {
 		params.Set("price", price)
 	}
-	bitstamp.buildPostForm(&params)
+	exchange.buildPostForm(&params)
 
-	resp, err := HttpPostForm(bitstamp.client, urlStr, params)
+	resp, err := HttpPostForm(exchange.client, urlStr, params)
 	if err != nil {
 		return nil, err
 	}
@@ -163,41 +163,41 @@ func (bitstamp *Bitstamp) placeOrder(side string, pair CurrencyPair, amount, pri
 		OrderTime:  1}, nil
 }
 
-func (bitstamp *Bitstamp) placeLimitOrder(side string, pair CurrencyPair, amount, price string) (*Order, error) {
+func (exchange *Exchange) placeLimitOrder(side string, pair CurrencyPair, amount, price string) (*Order, error) {
 	urlStr := fmt.Sprintf("%sv2/%s/%s/", BASE_URL, side, strings.ToLower(pair.ToSymbol("")))
 	//println(urlStr)
-	return bitstamp.placeOrder(side, pair, amount, price, urlStr)
+	return exchange.placeOrder(side, pair, amount, price, urlStr)
 }
 
-func (bitstamp *Bitstamp) placeMarketOrder(side string, pair CurrencyPair, amount string) (*Order, error) {
+func (exchange *Exchange) placeMarketOrder(side string, pair CurrencyPair, amount string) (*Order, error) {
 	urlStr := fmt.Sprintf("%sv2/%s/market/%s/", BASE_URL, side, strings.ToLower(pair.ToSymbol("")))
 	//println(urlStr)
-	return bitstamp.placeOrder(side, pair, amount, "", urlStr)
+	return exchange.placeOrder(side, pair, amount, "", urlStr)
 }
 
-func (bitstamp *Bitstamp) LimitBuy(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
-	return bitstamp.placeLimitOrder("buy", currency, amount, price)
+func (exchange *Exchange) LimitBuy(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
+	return exchange.placeLimitOrder("buy", currency, amount, price)
 }
 
-func (bitstamp *Bitstamp) LimitSell(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
-	return bitstamp.placeLimitOrder("sell", currency, amount, price)
+func (exchange *Exchange) LimitSell(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
+	return exchange.placeLimitOrder("sell", currency, amount, price)
 }
 
-func (bitstamp *Bitstamp) MarketBuy(amount, price string, currency CurrencyPair) (*Order, error) {
-	return bitstamp.placeMarketOrder("buy", currency, amount)
+func (exchange *Exchange) MarketBuy(amount, price string, currency CurrencyPair) (*Order, error) {
+	return exchange.placeMarketOrder("buy", currency, amount)
 }
 
-func (bitstamp *Bitstamp) MarketSell(amount, price string, currency CurrencyPair) (*Order, error) {
-	return bitstamp.placeMarketOrder("sell", currency, amount)
+func (exchange *Exchange) MarketSell(amount, price string, currency CurrencyPair) (*Order, error) {
+	return exchange.placeMarketOrder("sell", currency, amount)
 }
 
-func (bitstamp *Bitstamp) CancelOrder(orderId string, currency CurrencyPair) (bool, error) {
+func (exchange *Exchange) CancelOrder(orderId string, currency CurrencyPair) (bool, error) {
 	params := url.Values{}
 	params.Set("id", orderId)
-	bitstamp.buildPostForm(&params)
+	exchange.buildPostForm(&params)
 
 	urlStr := BASE_URL + "v2/cancel_order/"
-	resp, err := HttpPostForm(bitstamp.client, urlStr, params)
+	resp, err := HttpPostForm(exchange.client, urlStr, params)
 	if err != nil {
 		return false, err
 	}
@@ -216,13 +216,13 @@ func (bitstamp *Bitstamp) CancelOrder(orderId string, currency CurrencyPair) (bo
 	return true, nil
 }
 
-func (bitstamp *Bitstamp) GetOneOrder(orderId string, currency CurrencyPair) (*Order, error) {
+func (exchange *Exchange) GetOneOrder(orderId string, currency CurrencyPair) (*Order, error) {
 	params := url.Values{}
 	params.Set("id", orderId)
-	bitstamp.buildPostForm(&params)
+	exchange.buildPostForm(&params)
 
 	urlStr := BASE_URL + "order_status/"
-	resp, err := HttpPostForm(bitstamp.client, urlStr, params)
+	resp, err := HttpPostForm(exchange.client, urlStr, params)
 	if err != nil {
 		return nil, err
 	}
@@ -286,12 +286,12 @@ func (bitstamp *Bitstamp) GetOneOrder(orderId string, currency CurrencyPair) (*O
 	return &ord, nil
 }
 
-func (bitstamp *Bitstamp) GetUnfinishOrders(currency CurrencyPair) ([]Order, error) {
+func (exchange *Exchange) GetUnfinishOrders(currency CurrencyPair) ([]Order, error) {
 	params := url.Values{}
-	bitstamp.buildPostForm(&params)
+	exchange.buildPostForm(&params)
 
 	urlStr := BASE_URL + "v2/open_orders/" + strings.ToLower(currency.ToSymbol("")) + "/"
-	resp, err := HttpPostForm(bitstamp.client, urlStr, params)
+	resp, err := HttpPostForm(exchange.client, urlStr, params)
 	if err != nil {
 		return nil, err
 	}
@@ -325,15 +325,15 @@ func (bitstamp *Bitstamp) GetUnfinishOrders(currency CurrencyPair) ([]Order, err
 	return orders, nil
 }
 
-func (bitstamp *Bitstamp) GetOrderHistorys(currency CurrencyPair, optional ...OptionalParameter) ([]Order, error) {
+func (exchange *Exchange) GetOrderHistorys(currency CurrencyPair, optional ...OptionalParameter) ([]Order, error) {
 	panic("not implement")
 }
 
 //
 
-func (bitstamp *Bitstamp) GetTicker(currency CurrencyPair) (*Ticker, error) {
+func (exchange *Exchange) GetTicker(currency CurrencyPair) (*Ticker, error) {
 	urlStr := BASE_URL + "v2/ticker/" + strings.ToLower(currency.ToSymbol(""))
-	respmap, err := HttpGet(bitstamp.client, urlStr)
+	respmap, err := HttpGet(exchange.client, urlStr)
 	if err != nil {
 		return nil, err
 	}
@@ -349,9 +349,9 @@ func (bitstamp *Bitstamp) GetTicker(currency CurrencyPair) (*Ticker, error) {
 		Date: timestamp}, nil
 }
 
-func (bitstamp *Bitstamp) GetDepth(size int, currency CurrencyPair) (*Depth, error) {
+func (exchange *Exchange) GetDepth(size int, currency CurrencyPair) (*Depth, error) {
 	urlStr := BASE_URL + "v2/order_book/" + strings.ToLower(currency.ToSymbol(""))
-	respmap, err := HttpGet(bitstamp.client, urlStr)
+	respmap, err := HttpGet(exchange.client, urlStr)
 	if err != nil {
 		return nil, err
 	}
@@ -389,19 +389,23 @@ func (bitstamp *Bitstamp) GetDepth(size int, currency CurrencyPair) (*Depth, err
 	return dep, nil
 }
 
-func (bitstamp *Bitstamp) GetKlineRecords(currency CurrencyPair, period KlinePeriod, size int, optional ...OptionalParameter) ([]Kline, error) {
+func (exchange *Exchange) GetKlineRecords(currency CurrencyPair, period KlinePeriod, size int, optional ...OptionalParameter) ([]Kline, error) {
 	panic("not implement")
 }
 
 ////非个人，整个交易所的交易记录
-func (bitstamp *Bitstamp) GetTrades(currencyPair CurrencyPair, since int64) ([]Trade, error) {
+func (exchange *Exchange) GetTrades(currencyPair CurrencyPair, since int64) ([]Trade, error) {
 	panic("not implement")
 }
 
-func (bitstamp *Bitstamp) GetExchangeName() string {
+func (exchange *Exchange) GetExchangeName() string {
 	return BITSTAMP
 }
 
-func (bitstamp *Bitstamp) GetAssets(currency CurrencyPair) (*Assets, error) {
+func (exchange *Exchange) GetAssets(currency CurrencyPair) (*Assets, error) {
+	panic("")
+}
+
+func (exchange *Exchange) GetTradeHistory(currency CurrencyPair, optional ...OptionalParameter) ([]Trade, error) {
 	panic("")
 }

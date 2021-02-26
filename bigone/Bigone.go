@@ -21,7 +21,7 @@ const (
 	ORDERS_URI  = "%s/viewer/orders"
 )
 
-type Bigone struct {
+type Exchange struct {
 	accessKey,
 	secretKey string
 	httpClient *http.Client
@@ -30,11 +30,11 @@ type Bigone struct {
 	timeOffset int64
 }
 
-func New(client *http.Client, api_key, secret_key string) *Bigone {
-	return &Bigone{accessKey: api_key, secretKey: secret_key, httpClient: client, uid: uuid.New().String(), baseUri: V2}
+func New(client *http.Client, api_key, secret_key string) *Exchange {
+	return &Exchange{accessKey: api_key, secretKey: secret_key, httpClient: client, uid: uuid.New().String(), baseUri: V2}
 }
 
-func (bo *Bigone) GetExchangeName() string {
+func (exchange *Exchange) GetExchangeName() string {
 	return goex.BIGONE
 }
 
@@ -70,12 +70,12 @@ type TickerResp struct {
 	} `json:"data"`
 }
 
-func (bo *Bigone) GetTicker(currency goex.CurrencyPair) (*goex.Ticker, error) {
-	tickerURI := fmt.Sprintf(TICKER_URI, bo.baseUri, currency.ToSymbol("-"))
+func (exchange *Exchange) GetTicker(currency goex.CurrencyPair) (*goex.Ticker, error) {
+	tickerURI := fmt.Sprintf(TICKER_URI, exchange.baseUri, currency.ToSymbol("-"))
 
 	var resp TickerResp
 	//log.Printf("GetTicker -> %s", tickerURI)
-	err := goex.HttpGet4(bo.httpClient, tickerURI, nil, &resp)
+	err := goex.HttpGet4(exchange.httpClient, tickerURI, nil, &resp)
 
 	if err != nil {
 		log.Printf("GetTicker - HttpGet4 failed : %v", err)
@@ -123,8 +123,8 @@ type PlaceOrderResp struct {
 	} `json:"data"`
 }
 
-func (bo *Bigone) placeOrder(amount, price string, pair goex.CurrencyPair, orderType, orderSide string) (*goex.Order, error) {
-	path := fmt.Sprintf(ORDERS_URI, bo.baseUri)
+func (exchange *Exchange) placeOrder(amount, price string, pair goex.CurrencyPair, orderType, orderSide string) (*goex.Order, error) {
+	path := fmt.Sprintf(ORDERS_URI, exchange.baseUri)
 	params := make(map[string]string)
 	params["market_id"] = pair.ToSymbol("-")
 	params["side"] = orderSide
@@ -132,7 +132,7 @@ func (bo *Bigone) placeOrder(amount, price string, pair goex.CurrencyPair, order
 	params["price"] = price
 
 	var resp PlaceOrderResp
-	buf, err := goex.HttpPostForm4(bo.httpClient, path, params, bo.privateHeader())
+	buf, err := goex.HttpPostForm4(exchange.httpClient, path, params, exchange.privateHeader())
 
 	if err != nil {
 		log.Printf("placeOrder - HttpPostForm4 failed : %v", err)
@@ -167,29 +167,29 @@ func (bo *Bigone) placeOrder(amount, price string, pair goex.CurrencyPair, order
 		OrderTime:  int(time.Now().Unix())}, nil
 }
 
-func (bo *Bigone) LimitBuy(amount, price string, currency goex.CurrencyPair, opt ...goex.LimitOrderOptionalParameter) (*goex.Order, error) {
-	return bo.placeOrder(amount, price, currency, "LIMIT", "BID")
+func (exchange *Exchange) LimitBuy(amount, price string, currency goex.CurrencyPair, opt ...goex.LimitOrderOptionalParameter) (*goex.Order, error) {
+	return exchange.placeOrder(amount, price, currency, "LIMIT", "BID")
 }
 
-func (bo *Bigone) LimitSell(amount, price string, currency goex.CurrencyPair, opt ...goex.LimitOrderOptionalParameter) (*goex.Order, error) {
-	return bo.placeOrder(amount, price, currency, "LIMIT", "ASK")
+func (exchange *Exchange) LimitSell(amount, price string, currency goex.CurrencyPair, opt ...goex.LimitOrderOptionalParameter) (*goex.Order, error) {
+	return exchange.placeOrder(amount, price, currency, "LIMIT", "ASK")
 }
 
-func (bo *Bigone) MarketBuy(amount, price string, currency goex.CurrencyPair) (*goex.Order, error) {
+func (bo *Exchange) MarketBuy(amount, price string, currency goex.CurrencyPair) (*goex.Order, error) {
 	panic("not implements")
 }
 
-func (bo *Bigone) MarketSell(amount, price string, currency goex.CurrencyPair) (*goex.Order, error) {
+func (exchange *Exchange) MarketSell(amount, price string, currency goex.CurrencyPair) (*goex.Order, error) {
 	panic("not implements")
 }
 
-func (bo *Bigone) privateHeader() map[string]string {
+func (exchange *Exchange) privateHeader() map[string]string {
 	claims := jwt.ClaimSet{
 		"type":  "OpenAPI",
-		"sub":   bo.accessKey,
+		"sub":   exchange.accessKey,
 		"nonce": time.Now().UnixNano(),
 	}
-	token, err := claims.Sign(bo.secretKey)
+	token, err := claims.Sign(exchange.secretKey)
 	if nil != err {
 		log.Printf("privateHeader - cliam.Sign failed : %v", err)
 		return nil
@@ -234,10 +234,10 @@ type OrderListResp struct {
 	} `json:"data"`
 }
 
-func (bo *Bigone) getOrdersList(currencyPair goex.CurrencyPair, size int, sts goex.TradeStatus) ([]goex.Order, error) {
+func (exchange *Exchange) getOrdersList(currencyPair goex.CurrencyPair, size int, sts goex.TradeStatus) ([]goex.Order, error) {
 	apiURL := ""
 	apiURL = fmt.Sprintf(ORDERS_URI+"?market_id=%s",
-		bo.baseUri, currencyPair.ToSymbol("-"))
+		exchange.baseUri, currencyPair.ToSymbol("-"))
 
 	if sts == goex.ORDER_FINISH {
 		apiURL += "&state=FILLED"
@@ -245,7 +245,7 @@ func (bo *Bigone) getOrdersList(currencyPair goex.CurrencyPair, size int, sts go
 		apiURL += "&state=PENDING"
 	}
 	var resp OrderListResp
-	err := goex.HttpGet4(bo.httpClient, apiURL, bo.privateHeader(), &resp)
+	err := goex.HttpGet4(exchange.httpClient, apiURL, exchange.privateHeader(), &resp)
 	if err != nil {
 		log.Printf("getOrdersList - HttpGet4 failed : %v", err)
 		return nil, err
@@ -317,12 +317,12 @@ type CancelOrderResp struct {
 	}
 }
 
-func (bo *Bigone) CancelOrder(orderId string, currency goex.CurrencyPair) (bool, error) {
-	path := fmt.Sprintf(ORDERS_URI+"/%s/cancel", bo.baseUri, orderId)
+func (exchange *Exchange) CancelOrder(orderId string, currency goex.CurrencyPair) (bool, error) {
+	path := fmt.Sprintf(ORDERS_URI+"/%s/cancel", exchange.baseUri, orderId)
 	params := make(map[string]string)
 	params["order_id"] = orderId
 
-	buf, err := goex.HttpPostForm4(bo.httpClient, path, params, bo.privateHeader())
+	buf, err := goex.HttpPostForm4(exchange.httpClient, path, params, exchange.privateHeader())
 
 	if err != nil {
 		log.Printf("CancelOrder - faield : %v", err)
@@ -340,15 +340,16 @@ func (bo *Bigone) CancelOrder(orderId string, currency goex.CurrencyPair) (bool,
 	return true, nil
 }
 
-func (bo *Bigone) GetOneOrder(orderId string, currencyPair goex.CurrencyPair) (*goex.Order, error) {
+func (exchange *Exchange) GetOneOrder(orderId string, currencyPair goex.CurrencyPair) (*goex.Order, error) {
 	return nil, fmt.Errorf("GetOneOrder - not support yet")
+}
 
+func (exchange *Exchange) GetUnfinishOrders(currencyPair goex.CurrencyPair) ([]goex.Order, error) {
+	return exchange.getOrdersList(currencyPair, -1, goex.ORDER_UNFINISH)
 }
-func (bo *Bigone) GetUnfinishOrders(currencyPair goex.CurrencyPair) ([]goex.Order, error) {
-	return bo.getOrdersList(currencyPair, -1, goex.ORDER_UNFINISH)
-}
-func (bo *Bigone) GetOrderHistorys(currencyPair goex.CurrencyPair, opt ...goex.OptionalParameter) ([]goex.Order, error) {
-	return bo.getOrdersList(currencyPair, -1, goex.ORDER_FINISH)
+
+func (exchange *Exchange) GetOrderHistorys(currencyPair goex.CurrencyPair, opt ...goex.OptionalParameter) ([]goex.Order, error) {
+	return exchange.getOrdersList(currencyPair, -1, goex.ORDER_FINISH)
 }
 
 type AccountResp struct {
@@ -371,18 +372,18 @@ type AccountResp struct {
 	} `json:"data"`
 }
 
-func (bo *Bigone) GetAccount() (*goex.Account, error) {
+func (exchange *Exchange) GetAccount() (*goex.Account, error) {
 	var resp AccountResp
-	apiUrl := fmt.Sprintf(ACCOUNT_URI, bo.baseUri)
+	apiUrl := fmt.Sprintf(ACCOUNT_URI, exchange.baseUri)
 
-	err := goex.HttpGet4(bo.httpClient, apiUrl, bo.privateHeader(), &resp)
+	err := goex.HttpGet4(exchange.httpClient, apiUrl, exchange.privateHeader(), &resp)
 	if err != nil {
 		log.Println("GetAccount error:", err)
 		return nil, err
 	}
 
 	acc := goex.Account{}
-	acc.Exchange = bo.GetExchangeName()
+	acc.Exchange = exchange.GetExchangeName()
 	acc.SubAccounts = make(map[goex.Currency]goex.SubAccount)
 
 	for _, v := range resp.Data {
@@ -433,10 +434,10 @@ type DepthResp struct {
 	}
 }
 
-func (bo *Bigone) GetDepth(size int, currencyPair goex.CurrencyPair) (*goex.Depth, error) {
+func (exchange *Exchange) GetDepth(size int, currencyPair goex.CurrencyPair) (*goex.Depth, error) {
 	var resp DepthResp
-	apiURL := fmt.Sprintf(DEPTH_URI, bo.baseUri, currencyPair.ToSymbol("-"))
-	err := goex.HttpGet4(bo.httpClient, apiURL, nil, &resp)
+	apiURL := fmt.Sprintf(DEPTH_URI, exchange.baseUri, currencyPair.ToSymbol("-"))
+	err := goex.HttpGet4(exchange.httpClient, apiURL, nil, &resp)
 	if err != nil {
 		log.Println("GetDepth error:", err)
 		return nil, err
@@ -471,15 +472,19 @@ func (bo *Bigone) GetDepth(size int, currencyPair goex.CurrencyPair) (*goex.Dept
 	return depth, nil
 }
 
-func (bo *Bigone) GetKlineRecords(currency goex.CurrencyPair, period goex.KlinePeriod, size int, opt ...goex.OptionalParameter) ([]goex.Kline, error) {
+func (exchange *Exchange) GetKlineRecords(currency goex.CurrencyPair, period goex.KlinePeriod, size int, opt ...goex.OptionalParameter) ([]goex.Kline, error) {
 	panic("not implements")
 }
 
 //非个人，整个交易所的交易记录
-func (bo *Bigone) GetTrades(currencyPair goex.CurrencyPair, since int64) ([]goex.Trade, error) {
+func (exchange *Exchange) GetTrades(currencyPair goex.CurrencyPair, since int64) ([]goex.Trade, error) {
 	panic("not implements")
 }
 
-func (bo *Bigone) GetAssets(currency goex.CurrencyPair) (*goex.Assets, error) {
+func (exchange *Exchange) GetAssets(currency goex.CurrencyPair) (*goex.Assets, error) {
+	panic("")
+}
+
+func (exchange *Exchange) GetTradeHistory(currency goex.CurrencyPair, optional ...goex.OptionalParameter) ([]goex.Trade, error) {
 	panic("")
 }

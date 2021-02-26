@@ -45,7 +45,7 @@ type LendTicker struct {
 	DailyChangePerc float64
 }
 
-func (bfx *Bitfinex) GetLendTickers() ([]LendTicker, error) {
+func (bfx *Exchange) GetLendTickers() ([]LendTicker, error) {
 
 	resp, err := bfx.httpClient.Get("https://api.bitfinex.com/v2/tickers?symbols=ALL")
 	if err != nil {
@@ -75,7 +75,7 @@ func (bfx *Bitfinex) GetLendTickers() ([]LendTicker, error) {
 	return tickers, nil
 }
 
-func (bfx *Bitfinex) GetDepositWalletBalance() (*Account, error) {
+func (bfx *Exchange) GetDepositWalletBalance() (*Account, error) {
 	wallets, err := bfx.GetWalletBalances()
 	if err != nil {
 		return nil, err
@@ -83,7 +83,7 @@ func (bfx *Bitfinex) GetDepositWalletBalance() (*Account, error) {
 	return wallets["deposit"], nil
 }
 
-func (bfx *Bitfinex) GetLendBook(currency Currency) (error, *LendBook) {
+func (bfx *Exchange) GetLendBook(currency Currency) (error, *LendBook) {
 	path := fmt.Sprintf("/lendbook/%s", currency.Symbol)
 	resp, err := bfx.httpClient.Get(apiURLV1 + path)
 	if err != nil {
@@ -105,7 +105,7 @@ func (bfx *Bitfinex) GetLendBook(currency Currency) (error, *LendBook) {
 	return nil, &lendBook
 }
 
-func (bfx *Bitfinex) Transfer(amount float64, currency Currency, fromWallet, toWallet string) error {
+func (bfx *Exchange) Transfer(amount float64, currency Currency, fromWallet, toWallet string) error {
 	path := "transfer"
 	params := map[string]interface{}{
 		"amount":     strconv.FormatFloat(amount, 'f', -1, 32),
@@ -128,7 +128,7 @@ func (bfx *Bitfinex) Transfer(amount float64, currency Currency, fromWallet, toW
 	return errors.New(resp[0]["message"].(string))
 }
 
-func (bfx *Bitfinex) newOffer(currency Currency, amount, rate string, period int, direction string) (error, *LendOrder) {
+func (bfx *Exchange) newOffer(currency Currency, amount, rate string, period int, direction string) (error, *LendOrder) {
 	path := "offer/new"
 	params := map[string]interface{}{
 		"amount":    amount,
@@ -147,15 +147,15 @@ func (bfx *Bitfinex) newOffer(currency Currency, amount, rate string, period int
 	return nil, &lendOrder
 }
 
-func (bfx *Bitfinex) NewLendOrder(currency Currency, amount, rate string, period int) (error, *LendOrder) {
+func (bfx *Exchange) NewLendOrder(currency Currency, amount, rate string, period int) (error, *LendOrder) {
 	return bfx.newOffer(currency, amount, rate, period, "lend")
 }
 
-func (bfx *Bitfinex) NewLoanOrder(currency Currency, amount, rate string, period int) (error, *LendOrder) {
+func (bfx *Exchange) NewLoanOrder(currency Currency, amount, rate string, period int) (error, *LendOrder) {
 	return bfx.newOffer(currency, amount, rate, period, "loan")
 }
 
-func (bfx *Bitfinex) CancelLendOrder(id int) (error, *LendOrder) {
+func (bfx *Exchange) CancelLendOrder(id int) (error, *LendOrder) {
 	println("id=", id)
 	path := "offer/cancel"
 	var lendOrder LendOrder
@@ -166,7 +166,7 @@ func (bfx *Bitfinex) CancelLendOrder(id int) (error, *LendOrder) {
 	return nil, &lendOrder
 }
 
-func (bfx *Bitfinex) GetLendOrderStatus(id int) (error, *LendOrder) {
+func (bfx *Exchange) GetLendOrderStatus(id int) (error, *LendOrder) {
 	path := "offer/status"
 	var lendOrder LendOrder
 	err := bfx.doAuthenticatedRequest("POST", path, map[string]interface{}{"offer_id": id}, &lendOrder)
@@ -176,7 +176,7 @@ func (bfx *Bitfinex) GetLendOrderStatus(id int) (error, *LendOrder) {
 	return nil, &lendOrder
 }
 
-func (bfx *Bitfinex) ActiveLendOrders() (error, []LendOrder) {
+func (bfx *Exchange) ActiveLendOrders() (error, []LendOrder) {
 	var lendOrders []LendOrder
 	err := bfx.doAuthenticatedRequest("POST", "offers", map[string]interface{}{}, &lendOrders)
 	if err != nil {
@@ -185,7 +185,7 @@ func (bfx *Bitfinex) ActiveLendOrders() (error, []LendOrder) {
 	return nil, lendOrders
 }
 
-func (bfx *Bitfinex) OffersHistory(limit int) (error, []LendOrder) {
+func (bfx *Exchange) OffersHistory(limit int) (error, []LendOrder) {
 	var offerOrders []LendOrder
 	err := bfx.doAuthenticatedRequest("POST", "offers/hist", map[string]interface{}{"limit": limit}, &offerOrders)
 	if err != nil {
@@ -194,7 +194,7 @@ func (bfx *Bitfinex) OffersHistory(limit int) (error, []LendOrder) {
 	return nil, offerOrders
 }
 
-func (bfx *Bitfinex) ActiveCredits() (error, []LendOrder) {
+func (bfx *Exchange) ActiveCredits() (error, []LendOrder) {
 	var offerOrders []LendOrder
 	err := bfx.doAuthenticatedRequest("POST", "credits", map[string]interface{}{}, &offerOrders)
 	if err != nil {
@@ -213,7 +213,7 @@ type TradeFunding struct {
 	OfferId   int64  `json:"offer_id"`
 }
 
-func (bfx *Bitfinex) MytradesFunding(currency Currency, limit int) (error, []TradeFunding) {
+func (bfx *Exchange) MytradesFunding(currency Currency, limit int) (error, []TradeFunding) {
 	var trades []TradeFunding
 	err := bfx.doAuthenticatedRequest("POST", "mytrades_funding", map[string]interface{}{"limit_trades": limit, "symbol": currency.Symbol}, &trades)
 	if err != nil {

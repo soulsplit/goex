@@ -31,7 +31,7 @@ type AllFutureContractInfo struct {
 }
 
 type OKExFuture struct {
-	*OKEx
+	*Exchange
 	sync.Locker
 	allContractInfo AllFutureContractInfo
 }

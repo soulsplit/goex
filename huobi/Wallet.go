@@ -12,7 +12,7 @@ import (
 )
 
 type Wallet struct {
-	pro *HuoBiPro
+	pro *Exchange
 }
 
 func NewWallet(c *APIConfig) *Wallet {

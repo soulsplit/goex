@@ -23,14 +23,14 @@ type wsResp struct {
 }
 
 type OKExV3Ws struct {
-	base *OKEx
+	base *Exchange
 	*WsBuilder
 	once       *sync.Once
 	WsConn     *WsConn
 	respHandle func(channel string, data json.RawMessage) error
 }
 
-func NewOKExV3Ws(base *OKEx, handle func(channel string, data json.RawMessage) error) *OKExV3Ws {
+func NewOKExV3Ws(base *Exchange, handle func(channel string, data json.RawMessage) error) *OKExV3Ws {
 	okV3Ws := &OKExV3Ws{
 		once:       new(sync.Once),
 		base:       base,

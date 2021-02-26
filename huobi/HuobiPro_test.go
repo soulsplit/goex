@@ -32,7 +32,7 @@ var (
 )
 
 //
-var hbpro *HuoBiPro
+var hbpro *Exchange
 
 func init() {
 	logger.Log.SetLevel(logger.DEBUG)

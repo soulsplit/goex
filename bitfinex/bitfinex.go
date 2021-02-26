@@ -12,7 +12,7 @@ import (
 	. "github.com/soulsplit/goex"
 )
 
-type Bitfinex struct {
+type Exchange struct {
 	httpClient *http.Client
 	accessKey,
 	secretKey string
@@ -24,20 +24,20 @@ const (
 	apiURLV2 string = baseURL + "/v2"
 )
 
-func New(client *http.Client, accessKey, secretKey string) *Bitfinex {
-	return &Bitfinex{client, accessKey, secretKey}
+func New(client *http.Client, accessKey, secretKey string) *Exchange {
+	return &Exchange{client, accessKey, secretKey}
 }
 
-func (bfx *Bitfinex) GetExchangeName() string {
+func (exchange *Exchange) GetExchangeName() string {
 	return BITFINEX
 }
 
-func (bfx *Bitfinex) GetTicker(currencyPair CurrencyPair) (*Ticker, error) {
+func (exchange *Exchange) GetTicker(currencyPair CurrencyPair) (*Ticker, error) {
 	//pubticker
-	currencyPair = bfx.adaptCurrencyPair(currencyPair)
+	currencyPair = exchange.adaptCurrencyPair(currencyPair)
 
 	apiUrl := fmt.Sprintf("%s/pubticker/%s", apiURLV1, strings.ToLower(currencyPair.ToSymbol("")))
-	resp, err := HttpGet(bfx.httpClient, apiUrl)
+	resp, err := HttpGet(exchange.httpClient, apiUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -55,13 +55,13 @@ func (bfx *Bitfinex) GetTicker(currencyPair CurrencyPair) (*Ticker, error) {
 	ticker.Low = ToFloat64(resp["low"])
 	ticker.Sell = ToFloat64(resp["ask"])
 	ticker.Buy = ToFloat64(resp["bid"])
-	ticker.Date = uint64(bfx.adaptTimestamp(resp["timestamp"].(string)))
+	ticker.Date = uint64(exchange.adaptTimestamp(resp["timestamp"].(string)))
 	return ticker, nil
 }
 
-func (bfx *Bitfinex) GetDepth(size int, currencyPair CurrencyPair) (*Depth, error) {
-	apiUrl := fmt.Sprintf("%s/book/%s?limit_bids=%d&limit_asks=%d", apiURLV1, bfx.currencyPairToSymbol(currencyPair), size, size)
-	resp, err := HttpGet(bfx.httpClient, apiUrl)
+func (exchange *Exchange) GetDepth(size int, currencyPair CurrencyPair) (*Depth, error) {
+	apiUrl := fmt.Sprintf("%s/book/%s?limit_bids=%d&limit_asks=%d", apiURLV1, exchange.currencyPairToSymbol(currencyPair), size, size)
+	resp, err := HttpGet(exchange.httpClient, apiUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func (bfx *Bitfinex) GetDepth(size int, currencyPair CurrencyPair) (*Depth, erro
 	return depth, nil
 }
 
-func (bfx *Bitfinex) GetKlineRecords(currencyPair CurrencyPair, period KlinePeriod, size int, optional ...OptionalParameter) ([]Kline, error) {
+func (exchange *Exchange) GetKlineRecords(currencyPair CurrencyPair, period KlinePeriod, size int, optional ...OptionalParameter) ([]Kline, error) {
 	symbol := convertPairToBitfinexSymbol("t", currencyPair)
 	if size == 0 {
 		size = 100
@@ -101,7 +101,7 @@ func (bfx *Bitfinex) GetKlineRecords(currencyPair CurrencyPair, period KlinePeri
 	}
 	apiURL := fmt.Sprintf("%s/candles/trade:%s:%s/hist?limit=%d", apiURLV2, periodStr, symbol, size)
 
-	respRaw, err := NewHttpRequest(bfx.httpClient, "GET", apiURL, "", nil)
+	respRaw, err := NewHttpRequest(exchange.httpClient, "GET", apiURL, "", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -123,13 +123,13 @@ func (bfx *Bitfinex) GetKlineRecords(currencyPair CurrencyPair, period KlinePeri
 
 //非个人，整个交易所的交易记录
 
-func (bfx *Bitfinex) GetTrades(currencyPair CurrencyPair, since int64) ([]Trade, error) {
+func (exchange *Exchange) GetTrades(currencyPair CurrencyPair, since int64) ([]Trade, error) {
 	panic("not implement")
 }
 
-func (bfx *Bitfinex) GetWalletBalances() (map[string]*Account, error) {
+func (exchange *Exchange) GetWalletBalances() (map[string]*Account, error) {
 	var respmap []interface{}
-	err := bfx.doAuthenticatedRequest("GET", "balances", map[string]interface{}{}, &respmap)
+	err := exchange.doAuthenticatedRequest("GET", "balances", map[string]interface{}{}, &respmap)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +171,7 @@ func (bfx *Bitfinex) GetWalletBalances() (map[string]*Account, error) {
 }
 
 /*defalut only return exchange wallet balance*/
-func (bfx *Bitfinex) GetAccount() (*Account, error) {
+func (bfx *Exchange) GetAccount() (*Account, error) {
 	wallets, err := bfx.GetWalletBalances()
 	if err != nil {
 		return nil, err
@@ -179,10 +179,10 @@ func (bfx *Bitfinex) GetAccount() (*Account, error) {
 	return wallets["exchange"], nil
 }
 
-func (bfx *Bitfinex) placeOrder(orderType, side, amount, price string, pair CurrencyPair) (*Order, error) {
+func (exchange *Exchange) placeOrder(orderType, side, amount, price string, pair CurrencyPair) (*Order, error) {
 	path := "order/new"
 	params := map[string]interface{}{
-		"symbol":   bfx.currencyPairToSymbol(pair),
+		"symbol":   exchange.currencyPairToSymbol(pair),
 		"amount":   amount,
 		"price":    price,
 		"side":     side,
@@ -190,7 +190,7 @@ func (bfx *Bitfinex) placeOrder(orderType, side, amount, price string, pair Curr
 		"exchange": "bitfinex"}
 
 	var respmap map[string]interface{}
-	err := bfx.doAuthenticatedRequest("POST", path, params, &respmap)
+	err := exchange.doAuthenticatedRequest("POST", path, params, &respmap)
 	if err != nil {
 		return nil, err
 	}
@@ -220,41 +220,41 @@ func (bfx *Bitfinex) placeOrder(orderType, side, amount, price string, pair Curr
 	return order, nil
 }
 
-func (bfx *Bitfinex) LimitBuy(amount, price string, currencyPair CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
-	return bfx.placeOrder("exchange limit", "buy", amount, price, currencyPair)
+func (exchange *Exchange) LimitBuy(amount, price string, currencyPair CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
+	return exchange.placeOrder("exchange limit", "buy", amount, price, currencyPair)
 }
 
-func (bfx *Bitfinex) LimitSell(amount, price string, currencyPair CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
-	return bfx.placeOrder("exchange limit", "sell", amount, price, currencyPair)
+func (exchange *Exchange) LimitSell(amount, price string, currencyPair CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
+	return exchange.placeOrder("exchange limit", "sell", amount, price, currencyPair)
 }
 
-func (bfx *Bitfinex) MarketBuy(amount, price string, currencyPair CurrencyPair) (*Order, error) {
-	return bfx.placeOrder("exchange market", "buy", amount, price, currencyPair)
+func (exchange *Exchange) MarketBuy(amount, price string, currencyPair CurrencyPair) (*Order, error) {
+	return exchange.placeOrder("exchange market", "buy", amount, price, currencyPair)
 }
 
-func (bfx *Bitfinex) MarketSell(amount, price string, currencyPair CurrencyPair) (*Order, error) {
-	return bfx.placeOrder("exchange market", "sell", amount, price, currencyPair)
+func (exchange *Exchange) MarketSell(amount, price string, currencyPair CurrencyPair) (*Order, error) {
+	return exchange.placeOrder("exchange market", "sell", amount, price, currencyPair)
 }
 
-func (bfx *Bitfinex) StopBuy(amount, price string, currencyPair CurrencyPair) (*Order, error) {
-	return bfx.placeOrder("exchange stop", "buy", amount, price, currencyPair)
+func (exchange *Exchange) StopBuy(amount, price string, currencyPair CurrencyPair) (*Order, error) {
+	return exchange.placeOrder("exchange stop", "buy", amount, price, currencyPair)
 }
 
-func (bfx *Bitfinex) StopSell(amount, price string, currencyPair CurrencyPair) (*Order, error) {
-	return bfx.placeOrder("exchange stop", "sell", amount, price, currencyPair)
+func (exchange *Exchange) StopSell(amount, price string, currencyPair CurrencyPair) (*Order, error) {
+	return exchange.placeOrder("exchange stop", "sell", amount, price, currencyPair)
 }
 
-func (bfx *Bitfinex) CancelOrder(orderId string, currencyPair CurrencyPair) (bool, error) {
+func (exchange *Exchange) CancelOrder(orderId string, currencyPair CurrencyPair) (bool, error) {
 	var respmap map[string]interface{}
 	path := "order/cancel"
-	err := bfx.doAuthenticatedRequest("POST", path, map[string]interface{}{"order_id": ToInt(orderId)}, &respmap)
+	err := exchange.doAuthenticatedRequest("POST", path, map[string]interface{}{"order_id": ToInt(orderId)}, &respmap)
 	if err != nil {
 		return false, err
 	}
 	return respmap["is_cancelled"].(bool), nil
 }
 
-func (bfx *Bitfinex) toOrder(respmap map[string]interface{}) *Order {
+func (exchange *Exchange) toOrder(respmap map[string]interface{}) *Order {
 	order := new(Order)
 	order.Currency = symbolToCurrencyPair(respmap["symbol"].(string))
 	order.OrderID = ToInt(respmap["id"])
@@ -263,7 +263,7 @@ func (bfx *Bitfinex) toOrder(respmap map[string]interface{}) *Order {
 	order.Price = ToFloat64(respmap["price"])
 	order.DealAmount = ToFloat64(respmap["executed_amount"])
 	order.AvgPrice = ToFloat64(respmap["avg_execution_price"])
-	order.OrderTime = bfx.adaptTimestamp(respmap["timestamp"].(string))
+	order.OrderTime = exchange.adaptTimestamp(respmap["timestamp"].(string))
 
 	if order.DealAmount == order.Amount {
 		order.Status = ORDER_FINISH
@@ -284,19 +284,19 @@ func (bfx *Bitfinex) toOrder(respmap map[string]interface{}) *Order {
 	return order
 }
 
-func (bfx *Bitfinex) GetOneOrder(orderId string, currencyPair CurrencyPair) (*Order, error) {
+func (exchange *Exchange) GetOneOrder(orderId string, currencyPair CurrencyPair) (*Order, error) {
 	var respmap map[string]interface{}
 	path := "order/status"
-	err := bfx.doAuthenticatedRequest("POST", path, map[string]interface{}{"order_id": ToInt(orderId)}, &respmap)
+	err := exchange.doAuthenticatedRequest("POST", path, map[string]interface{}{"order_id": ToInt(orderId)}, &respmap)
 	if err != nil {
 		return nil, err
 	}
-	return bfx.toOrder(respmap), nil
+	return exchange.toOrder(respmap), nil
 }
 
-func (bfx *Bitfinex) GetUnfinishOrders(currencyPair CurrencyPair) ([]Order, error) {
+func (exchange *Exchange) GetUnfinishOrders(currencyPair CurrencyPair) ([]Order, error) {
 	var ordersmap []interface{}
-	err := bfx.doAuthenticatedRequest("POST", "orders", map[string]interface{}{}, &ordersmap)
+	err := exchange.doAuthenticatedRequest("POST", "orders", map[string]interface{}{}, &ordersmap)
 	if err != nil {
 		return nil, err
 	}
@@ -304,16 +304,16 @@ func (bfx *Bitfinex) GetUnfinishOrders(currencyPair CurrencyPair) ([]Order, erro
 	var orders []Order
 	for _, v := range ordersmap {
 		ordermap := v.(map[string]interface{})
-		orders = append(orders, *bfx.toOrder(ordermap))
+		orders = append(orders, *exchange.toOrder(ordermap))
 	}
 	return orders, nil
 }
 
-func (bfx *Bitfinex) GetOrderHistorys(currencyPair CurrencyPair, optional ...OptionalParameter) ([]Order, error) {
+func (exchange *Exchange) GetOrderHistorys(currencyPair CurrencyPair, optional ...OptionalParameter) ([]Order, error) {
 	panic("not implement")
 }
 
-func (bfx *Bitfinex) doAuthenticatedRequest(method, path string, payload map[string]interface{}, ret interface{}) error {
+func (exchange *Exchange) doAuthenticatedRequest(method, path string, payload map[string]interface{}, ret interface{}) error {
 	nonce := time.Now().UnixNano()
 	payload["request"] = "/v1/" + path
 	payload["nonce"] = fmt.Sprintf("%d.2", nonce)
@@ -323,12 +323,12 @@ func (bfx *Bitfinex) doAuthenticatedRequest(method, path string, payload map[str
 		return err
 	}
 	encoded := base64.StdEncoding.EncodeToString(p)
-	sign, _ := GetParamHmacSha384Sign(bfx.secretKey, encoded)
+	sign, _ := GetParamHmacSha384Sign(exchange.secretKey, encoded)
 
-	resp, err := NewHttpRequest(bfx.httpClient, method, apiURLV1+"/"+path, "", map[string]string{
+	resp, err := NewHttpRequest(exchange.httpClient, method, apiURLV1+"/"+path, "", map[string]string{
 		"Content-Type":    "application/json",
 		"Accept":          "application/json",
-		"X-BFX-APIKEY":    bfx.accessKey,
+		"X-BFX-APIKEY":    exchange.accessKey,
 		"X-BFX-PAYLOAD":   encoded,
 		"X-BFX-SIGNATURE": sign})
 
@@ -340,17 +340,17 @@ func (bfx *Bitfinex) doAuthenticatedRequest(method, path string, payload map[str
 	return err
 }
 
-func (bfx *Bitfinex) currencyPairToSymbol(currencyPair CurrencyPair) string {
+func (exchange *Exchange) currencyPairToSymbol(currencyPair CurrencyPair) string {
 	return strings.ToUpper(currencyPair.ToSymbol(""))
 }
 
-func (bfx *Bitfinex) adaptTimestamp(timestamp string) int {
+func (exchange *Exchange) adaptTimestamp(timestamp string) int {
 	times := strings.Split(timestamp, ".")
 	intTime, _ := strconv.Atoi(times[0])
 	return intTime
 }
 
-func (bfx *Bitfinex) adaptCurrencyPair(pair CurrencyPair) CurrencyPair {
+func (exchange *Exchange) adaptCurrencyPair(pair CurrencyPair) CurrencyPair {
 	var currencyA Currency
 	var currencyB Currency
 
@@ -421,6 +421,10 @@ func convertKeyToPair(key string) CurrencyPair {
 	return symbolToCurrencyPair(split[2][1:])
 }
 
-func (bfx *Bitfinex) GetAssets(currency CurrencyPair) (*Assets, error) {
+func (exchange *Exchange) GetAssets(currency CurrencyPair) (*Assets, error) {
+	panic("")
+}
+
+func (exchange *Exchange) GetTradeHistory(currency CurrencyPair, optional ...OptionalParameter) ([]Trade, error) {
 	panic("")
 }

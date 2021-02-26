@@ -73,7 +73,7 @@ type SymbolInfo struct {
 }
 
 type BinanceFutures struct {
-	base         *Binance
+	base         *Exchange
 	apikey       string
 	exchangeInfo *struct {
 		Symbols []SymbolInfo `json:"symbols"`

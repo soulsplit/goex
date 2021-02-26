@@ -133,14 +133,14 @@ var KlinePeriodConverter = map[KlinePeriod]string{
 	KLINE_PERIOD_1MONTH: "30day",
 }
 
-type Atop struct {
+type Exchange struct {
 	accessKey,
 	secretKey string
 	httpClient *http.Client
 }
 
 //hao
-func (at *Atop) buildPostForm(postForm *url.Values) error {
+func (at *Exchange) buildPostForm(postForm *url.Values) error {
 	postForm.Set("accesskey", at.accessKey)
 	nonce := strconv.FormatInt(time.Now().UnixNano()/1e6, 10)
 	postForm.Set("nonce", nonce)
@@ -151,19 +151,19 @@ func (at *Atop) buildPostForm(postForm *url.Values) error {
 	return nil
 }
 
-func New(client *http.Client, apiKey, secretKey string) *Atop {
-	return &Atop{apiKey, secretKey, client}
+func New(client *http.Client, apiKey, secretKey string) *Exchange {
+	return &Exchange{apiKey, secretKey, client}
 }
 
-func (at *Atop) GetExchangeName() string {
+func (exchange *Exchange) GetExchangeName() string {
 	return "atop.com"
 }
 
 //hao
-func (at *Atop) GetTicker(currency CurrencyPair) (*Ticker, error) {
+func (exchange *Exchange) GetTicker(currency CurrencyPair) (*Ticker, error) {
 	market := strings.ToLower(currency.String())
 	tickerUrl := ApiBaseUrl + fmt.Sprintf(GetTicker, market)
-	resp, err := HttpGet(at.httpClient, tickerUrl)
+	resp, err := HttpGet(exchange.httpClient, tickerUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -181,10 +181,10 @@ func (at *Atop) GetTicker(currency CurrencyPair) (*Ticker, error) {
 }
 
 //hao
-func (at *Atop) GetDepth(size int, currency CurrencyPair) (*Depth, error) {
+func (exchange *Exchange) GetDepth(size int, currency CurrencyPair) (*Depth, error) {
 	market := strings.ToLower(currency.String())
 	depthUrl := ApiBaseUrl + fmt.Sprintf(GetDepth, market)
-	resp, err := HttpGet(at.httpClient, depthUrl)
+	resp, err := HttpGet(exchange.httpClient, depthUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -215,8 +215,8 @@ func (at *Atop) GetDepth(size int, currency CurrencyPair) (*Depth, error) {
 }
 
 //hao
-func (at *Atop) plateOrder(amount, price string, currencyPair CurrencyPair, orderType, orderSide string) (*Order, error) {
-	pair := at.adaptCurrencyPair(currencyPair)
+func (exchange *Exchange) plateOrder(amount, price string, currencyPair CurrencyPair, orderType, orderSide string) (*Order, error) {
+	pair := exchange.adaptCurrencyPair(currencyPair)
 	path := ApiBaseUrl + PlateOrder
 	params := url.Values{}
 	params.Set("market", pair.ToLower().String()) //btc_usdt eth_usdt
@@ -234,8 +234,8 @@ func (at *Atop) plateOrder(amount, price string, currencyPair CurrencyPair, orde
 		params.Set("entrustType", strconv.Itoa(0))
 	}
 	//params.Set("entrustType", orderType)//Delegate type  0、limit，1、market
-	at.buildPostForm(&params)
-	resp, err := HttpPostForm(at.httpClient, path, params)
+	exchange.buildPostForm(&params)
+	resp, err := HttpPostForm(exchange.httpClient, path, params)
 	//log.Println("resp:", string(resp), "err:", err)
 	if err != nil {
 		return nil, err
@@ -276,12 +276,12 @@ func (at *Atop) plateOrder(amount, price string, currencyPair CurrencyPair, orde
 }
 
 //hao
-func (at *Atop) GetAccount() (*Account, error) {
+func (exchange *Exchange) GetAccount() (*Account, error) {
 	params := url.Values{}
-	at.buildPostForm(&params)
+	exchange.buildPostForm(&params)
 	path := ApiBaseUrl + GetBalance
 	//fmt.Println("GetBalance", path)
-	resp, err := HttpPostForm(at.httpClient, path, params)
+	resp, err := HttpPostForm(exchange.httpClient, path, params)
 	if err != nil {
 		return nil, err
 	}
@@ -292,7 +292,7 @@ func (at *Atop) GetAccount() (*Account, error) {
 	}
 	data := respMap["data"].(map[string]interface{})
 	atc := Account{}
-	atc.Exchange = at.GetExchangeName()
+	atc.Exchange = exchange.GetExchangeName()
 	atc.SubAccounts = make(map[Currency]SubAccount)
 	for k, v := range data {
 		cur := NewCurrency(k, "")
@@ -307,36 +307,36 @@ func (at *Atop) GetAccount() (*Account, error) {
 }
 
 //hao
-func (at *Atop) LimitBuy(amount, price string, currencyPair CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
-	return at.plateOrder(amount, price, currencyPair, "limit", "buy")
+func (exchange *Exchange) LimitBuy(amount, price string, currencyPair CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
+	return exchange.plateOrder(amount, price, currencyPair, "limit", "buy")
 }
 
 //hao
-func (at *Atop) LimitSell(amount, price string, currencyPair CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
-	return at.plateOrder(amount, price, currencyPair, "limit", "sale")
+func (exchange *Exchange) LimitSell(amount, price string, currencyPair CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
+	return exchange.plateOrder(amount, price, currencyPair, "limit", "sale")
 }
 
 //hao
-func (at *Atop) MarketBuy(amount, price string, currencyPair CurrencyPair) (*Order, error) {
+func (at *Exchange) MarketBuy(amount, price string, currencyPair CurrencyPair) (*Order, error) {
 	return at.plateOrder(amount, price, currencyPair, "market", "buy")
 }
 
 //hao
-func (at *Atop) MarketSell(amount, price string, currencyPair CurrencyPair) (*Order, error) {
-	return at.plateOrder(amount, price, currencyPair, "market", "sale")
+func (exchange *Exchange) MarketSell(amount, price string, currencyPair CurrencyPair) (*Order, error) {
+	return exchange.plateOrder(amount, price, currencyPair, "market", "sale")
 }
 
-func (at *Atop) CancelOrder(orderId string, currencyPair CurrencyPair) (bool, error) {
-	currencyPair = at.adaptCurrencyPair(currencyPair)
+func (exchange *Exchange) CancelOrder(orderId string, currencyPair CurrencyPair) (bool, error) {
+	currencyPair = exchange.adaptCurrencyPair(currencyPair)
 	path := ApiBaseUrl + CancelOrder
 	params := url.Values{}
-	params.Set("api_key", at.accessKey)
+	params.Set("api_key", exchange.accessKey)
 	params.Set("market", currencyPair.ToLower().String())
 	params.Set("id", orderId)
 
-	at.buildPostForm(&params)
+	exchange.buildPostForm(&params)
 
-	resp, err := HttpPostForm(at.httpClient, path, params)
+	resp, err := HttpPostForm(exchange.httpClient, path, params)
 
 	if err != nil {
 		return false, err
@@ -362,16 +362,16 @@ func (at *Atop) CancelOrder(orderId string, currencyPair CurrencyPair) (bool, er
 }
 
 //hao？
-func (at *Atop) GetOneOrder(orderId string, currencyPair CurrencyPair) (*Order, error) {
-	currencyPair = at.adaptCurrencyPair(currencyPair)
+func (exchange *Exchange) GetOneOrder(orderId string, currencyPair CurrencyPair) (*Order, error) {
+	currencyPair = exchange.adaptCurrencyPair(currencyPair)
 	path := ApiBaseUrl + GetOrder
 	log.Println(path)
 	params := url.Values{}
-	params.Set("api_key", at.accessKey)
+	params.Set("api_key", exchange.accessKey)
 	params.Set("market", currencyPair.ToLower().String())
 	params.Set("id", orderId)
-	at.buildPostForm(&params)
-	resp, err := HttpPostForm(at.httpClient, path, params)
+	exchange.buildPostForm(&params)
+	resp, err := HttpPostForm(exchange.httpClient, path, params)
 
 	if err != nil {
 		return nil, err
@@ -430,16 +430,16 @@ func (at *Atop) GetOneOrder(orderId string, currencyPair CurrencyPair) (*Order, 
 }
 
 //hao
-func (at *Atop) GetUnfinishOrders(currencyPair CurrencyPair) ([]Order, error) {
-	pair := at.adaptCurrencyPair(currencyPair)
+func (exchange *Exchange) GetUnfinishOrders(currencyPair CurrencyPair) ([]Order, error) {
+	pair := exchange.adaptCurrencyPair(currencyPair)
 	path := ApiBaseUrl + GetOpenOrders
 	params := url.Values{}
 	params.Set("market", pair.ToLower().String())
 	params.Set("page", "1")
 	params.Set("pageSize", "10000")
-	at.buildPostForm(&params)
+	exchange.buildPostForm(&params)
 
-	resp, err := HttpPostForm(at.httpClient, path, params)
+	resp, err := HttpPostForm(exchange.httpClient, path, params)
 	if err != nil {
 		return nil, err
 	}
@@ -473,8 +473,8 @@ func (at *Atop) GetUnfinishOrders(currencyPair CurrencyPair) ([]Order, error) {
 }
 
 //hao
-func (at *Atop) GetKlineRecords(currency CurrencyPair, period KlinePeriod, size int, opt ...OptionalParameter) ([]Kline, error) {
-	pair := at.adaptCurrencyPair(currency)
+func (exchange *Exchange) GetKlineRecords(currency CurrencyPair, period KlinePeriod, size int, opt ...OptionalParameter) ([]Kline, error) {
+	pair := exchange.adaptCurrencyPair(currency)
 	params := url.Values{}
 	params.Set("market", pair.ToLower().String())
 	//params.Set("type", "1min") //1min,5min,15min,30min,1hour,6hour,1day,7day,30day
@@ -482,7 +482,7 @@ func (at *Atop) GetKlineRecords(currency CurrencyPair, period KlinePeriod, size 
 	MergeOptionalParameter(&params, opt...)
 
 	klineUrl := ApiBaseUrl + GetKLine + "?" + params.Encode()
-	kLines, err := HttpGet(at.httpClient, klineUrl)
+	kLines, err := HttpGet(exchange.httpClient, klineUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -513,14 +513,14 @@ func (at *Atop) GetKlineRecords(currency CurrencyPair, period KlinePeriod, size 
 }
 
 // hao Non-individual, transaction record of the entire exchange
-func (at *Atop) GetTrades(currencyPair CurrencyPair, since int64) ([]Trade, error) {
-	pair := at.adaptCurrencyPair(currencyPair)
+func (exchange *Exchange) GetTrades(currencyPair CurrencyPair, since int64) ([]Trade, error) {
+	pair := exchange.adaptCurrencyPair(currencyPair)
 	params := url.Values{}
 	params.Set("market", pair.ToLower().String())
 
 	apiUrl := ApiBaseUrl + GetTrades + "?" + params.Encode()
 
-	resp, err := HttpGet(at.httpClient, apiUrl)
+	resp, err := HttpGet(exchange.httpClient, apiUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -545,18 +545,18 @@ func (at *Atop) GetTrades(currencyPair CurrencyPair, since int64) ([]Trade, erro
 	return trades, nil
 }
 
-func (at *Atop) GetOrderHistorys(currency CurrencyPair, optional ...OptionalParameter) ([]Order, error) {
+func (exchange *Exchange) GetOrderHistorys(currency CurrencyPair, optional ...OptionalParameter) ([]Order, error) {
 	//panic("not support")
-	pair := at.adaptCurrencyPair(currency)
+	pair := exchange.adaptCurrencyPair(currency)
 	path := ApiBaseUrl + GetHistorys
 	params := url.Values{}
 	params.Set("market", pair.ToLower().String())
 
 	MergeOptionalParameter(&params, optional...)
 
-	at.buildPostForm(&params)
+	exchange.buildPostForm(&params)
 
-	resp, err := HttpPostForm(at.httpClient, path, params)
+	resp, err := HttpPostForm(exchange.httpClient, path, params)
 	if err != nil {
 		return nil, err
 	}
@@ -592,7 +592,7 @@ func (at *Atop) GetOrderHistorys(currency CurrencyPair, optional ...OptionalPara
 }
 
 // hao
-func (at *Atop) Withdraw(amount, memo string, currency Currency, fees, receiveAddr, safePwd string) (string, error) {
+func (exchange *Exchange) Withdraw(amount, memo string, currency Currency, fees, receiveAddr, safePwd string) (string, error) {
 	params := url.Values{}
 	coin := strings.ToLower(currency.Symbol)
 	path := ApiBaseUrl + Withdrawal
@@ -602,9 +602,9 @@ func (at *Atop) Withdraw(amount, memo string, currency Currency, fees, receiveAd
 	params.Set("receiveAddr", receiveAddr)
 	params.Set("safePwd", safePwd)
 	//params.Set("memo", memo)
-	at.buildPostForm(&params)
+	exchange.buildPostForm(&params)
 
-	resp, err := HttpPostForm(at.httpClient, path, params)
+	resp, err := HttpPostForm(exchange.httpClient, path, params)
 
 	if err != nil {
 		return "", err
@@ -622,13 +622,17 @@ func (at *Atop) Withdraw(amount, memo string, currency Currency, fees, receiveAd
 	return "", errors.New(string(resp))
 }
 
-func (at *Atop) CancelWithdraw(id string, currency Currency, safePwd string) (bool, error) {
+func (exchange *Exchange) CancelWithdraw(id string, currency Currency, safePwd string) (bool, error) {
 	panic("not support")
 }
-func (at *Atop) adaptCurrencyPair(pair CurrencyPair) CurrencyPair {
+func (exchange *Exchange) adaptCurrencyPair(pair CurrencyPair) CurrencyPair {
 	return pair
 }
 
-func (at *Atop) GetAssets(currency CurrencyPair) (*Assets, error) {
+func (exchange *Exchange) GetAssets(currency CurrencyPair) (*Assets, error) {
+	panic("")
+}
+
+func (exchange *Exchange) GetTradeHistory(currency CurrencyPair, optional ...OptionalParameter) ([]Trade, error) {
 	panic("")
 }

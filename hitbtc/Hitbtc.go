@@ -36,17 +36,17 @@ var (
 	YCC_BTC = goex.CurrencyPair{CurrencyA: YCC, CurrencyB: BTC}
 )
 
-type Hitbtc struct {
+type Exchange struct {
 	accessKey,
 	secretKey string
 	httpClient *http.Client
 }
 
-func New(client *http.Client, accessKey, secretKey string) *Hitbtc {
-	return &Hitbtc{accessKey, secretKey, client}
+func New(client *http.Client, accessKey, secretKey string) *Exchange {
+	return &Exchange{accessKey, secretKey, client}
 }
 
-func (hitbtc *Hitbtc) GetExchangeName() string {
+func (exchange *Exchange) GetExchangeName() string {
 	return EXCHANGE_NAME
 }
 
@@ -66,9 +66,9 @@ curl "https://api.hitbtc.com/api/2/public/symbol"
   }
 ]
 */
-func (hitbtc *Hitbtc) GetSymbols() ([]goex.CurrencyPair, error) {
+func (exchange *Exchange) GetSymbols() ([]goex.CurrencyPair, error) {
 	resp := []map[string]interface{}{}
-	err := hitbtc.doRequest("GET", SYMBOLS_URI, &resp)
+	err := exchange.doRequest("GET", SYMBOLS_URI, &resp)
 	if err != nil {
 		return nil, err
 	}
@@ -104,10 +104,10 @@ curl "https://api.hitbtc.com/api/2/public/ticker"
   }
 ]
 */
-func (hitbtc *Hitbtc) GetTicker(currency goex.CurrencyPair) (*goex.Ticker, error) {
-	curr := hitbtc.adaptCurrencyPair(currency).ToSymbol("")
+func (exchange *Exchange) GetTicker(currency goex.CurrencyPair) (*goex.Ticker, error) {
+	curr := exchange.adaptCurrencyPair(currency).ToSymbol("")
 	tickerUri := API_BASE_URL + API_V2 + TICKER_URI + curr
-	bodyDataMap, err := goex.HttpGet(hitbtc.httpClient, tickerUri)
+	bodyDataMap, err := goex.HttpGet(exchange.httpClient, tickerUri)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +153,7 @@ curl -X PUT -u "ff20f250a7b3a414781d1abe11cd8cee:fb453577d11294359058a9ae13c9471
         "updatedAt": "2017-05-15T17:01:05.092Z"
     }
 */
-func (hitbtc *Hitbtc) placeOrder(ty goex.TradeSide, amount, price string, currency goex.CurrencyPair) (*goex.Order, error) {
+func (exchange *Exchange) placeOrder(ty goex.TradeSide, amount, price string, currency goex.CurrencyPair) (*goex.Order, error) {
 	postData := url.Values{}
 	postData.Set("symbol", currency.ToSymbol(""))
 	var side string
@@ -184,9 +184,9 @@ func (hitbtc *Hitbtc) placeOrder(ty goex.TradeSide, amount, price string, curren
 	reqUrl := API_BASE_URL + API_V2 + ORDER_URI
 	headers := make(map[string]string)
 	headers["Content-type"] = "application/x-www-form-urlencoded"
-	headers["Authorization"] = "Basic " + base64.StdEncoding.EncodeToString([]byte(hitbtc.accessKey+":"+hitbtc.secretKey))
+	headers["Authorization"] = "Basic " + base64.StdEncoding.EncodeToString([]byte(exchange.accessKey+":"+exchange.secretKey))
 
-	bytes, err := goex.HttpPostForm3(hitbtc.httpClient, reqUrl, postData.Encode(), headers)
+	bytes, err := goex.HttpPostForm3(exchange.httpClient, reqUrl, postData.Encode(), headers)
 	if err != nil {
 		return nil, err
 	}
@@ -211,31 +211,31 @@ func (hitbtc *Hitbtc) placeOrder(ty goex.TradeSide, amount, price string, curren
 		return nil, errors.New(errObj.(map[string]string)["message"])
 	}
 
-	return hitbtc.toOrder(resp), nil
+	return exchange.toOrder(resp), nil
 }
 
-func (hitbtc *Hitbtc) LimitBuy(amount, price string, currency goex.CurrencyPair, opt ...goex.LimitOrderOptionalParameter) (*goex.Order, error) {
-	return hitbtc.placeOrder(goex.BUY, amount, price, currency)
+func (exchange *Exchange) LimitBuy(amount, price string, currency goex.CurrencyPair, opt ...goex.LimitOrderOptionalParameter) (*goex.Order, error) {
+	return exchange.placeOrder(goex.BUY, amount, price, currency)
 }
 
-func (hitbtc *Hitbtc) LimitSell(amount, price string, currency goex.CurrencyPair, opt ...goex.LimitOrderOptionalParameter) (*goex.Order, error) {
-	return hitbtc.placeOrder(goex.SELL, amount, price, currency)
+func (exchange *Exchange) LimitSell(amount, price string, currency goex.CurrencyPair, opt ...goex.LimitOrderOptionalParameter) (*goex.Order, error) {
+	return exchange.placeOrder(goex.SELL, amount, price, currency)
 }
 
-func (hitbtc *Hitbtc) MarketBuy(amount, price string, currency goex.CurrencyPair) (*goex.Order, error) {
-	return hitbtc.placeOrder(goex.BUY_MARKET, amount, price, currency)
+func (exchange *Exchange) MarketBuy(amount, price string, currency goex.CurrencyPair) (*goex.Order, error) {
+	return exchange.placeOrder(goex.BUY_MARKET, amount, price, currency)
 }
 
-func (hitbtc *Hitbtc) MarketSell(amount, price string, currency goex.CurrencyPair) (*goex.Order, error) {
-	return hitbtc.placeOrder(goex.SELL_MARKET, amount, price, currency)
+func (exchange *Exchange) MarketSell(amount, price string, currency goex.CurrencyPair) (*goex.Order, error) {
+	return exchange.placeOrder(goex.SELL_MARKET, amount, price, currency)
 }
 
-func (hitbtc *Hitbtc) CancelOrder(orderId string, currency goex.CurrencyPair) (bool, error) {
+func (exchange *Exchange) CancelOrder(orderId string, currency goex.CurrencyPair) (bool, error) {
 	postData := url.Values{}
 	reqUrl := API_BASE_URL + API_V2 + ORDER_URI + "/" + orderId
 	headers := make(map[string]string)
-	headers["Authorization"] = "Basic " + base64.StdEncoding.EncodeToString([]byte(hitbtc.accessKey+":"+hitbtc.secretKey))
-	bytes, err := goex.HttpDeleteForm(hitbtc.httpClient, reqUrl, postData, headers)
+	headers["Authorization"] = "Basic " + base64.StdEncoding.EncodeToString([]byte(exchange.accessKey+":"+exchange.secretKey))
+	bytes, err := goex.HttpDeleteForm(exchange.httpClient, reqUrl, postData, headers)
 	if err != nil {
 		return false, err
 	}
@@ -254,9 +254,9 @@ func (hitbtc *Hitbtc) CancelOrder(orderId string, currency goex.CurrencyPair) (b
 	return true, nil
 }
 
-func (hitbtc *Hitbtc) GetOneOrder(orderId string, currency goex.CurrencyPair) (*goex.Order, error) {
+func (exchange *Exchange) GetOneOrder(orderId string, currency goex.CurrencyPair) (*goex.Order, error) {
 	resp := make(map[string]interface{})
-	err := hitbtc.doRequest("GET", ORDER_URI+"/"+orderId, &resp)
+	err := exchange.doRequest("GET", ORDER_URI+"/"+orderId, &resp)
 	if err != nil {
 		return nil, err
 	}
@@ -265,14 +265,14 @@ func (hitbtc *Hitbtc) GetOneOrder(orderId string, currency goex.CurrencyPair) (*
 		return nil, errors.New(errObj.(map[string]string)["message"])
 	}
 
-	return hitbtc.toOrder(resp), nil
+	return exchange.toOrder(resp), nil
 }
 
-func (hitbtc *Hitbtc) GetUnfinishOrders(currency goex.CurrencyPair) ([]goex.Order, error) {
+func (exchange *Exchange) GetUnfinishOrders(currency goex.CurrencyPair) ([]goex.Order, error) {
 	params := url.Values{}
 	params.Set("symbol", currency.ToSymbol(""))
 	resp := []map[string]interface{}{}
-	err := hitbtc.doRequest("GET", ORDER_URI+"?"+params.Encode(), &resp)
+	err := exchange.doRequest("GET", ORDER_URI+"?"+params.Encode(), &resp)
 	if err != nil {
 		return nil, err
 	}
@@ -281,7 +281,7 @@ func (hitbtc *Hitbtc) GetUnfinishOrders(currency goex.CurrencyPair) ([]goex.Orde
 
 	orders := []goex.Order{}
 	for _, e := range resp {
-		o := hitbtc.toOrder(e)
+		o := exchange.toOrder(e)
 		if o.Status == goex.ORDER_UNFINISH || o.Status == goex.ORDER_PART_FINISH {
 			orders = append(orders, *o)
 		}
@@ -291,12 +291,12 @@ func (hitbtc *Hitbtc) GetUnfinishOrders(currency goex.CurrencyPair) ([]goex.Orde
 
 // TODO
 // https://api.hitbtc.com/#orders-history
-func (hitbtc *Hitbtc) GetOrderHistorys(currency goex.CurrencyPair, optional ...goex.OptionalParameter) ([]goex.Order, error) {
+func (exchange *Exchange) GetOrderHistorys(currency goex.CurrencyPair, optional ...goex.OptionalParameter) ([]goex.Order, error) {
 	params := url.Values{}
 	params.Set("symbol", currency.ToSymbol(""))
 
 	resp := []map[string]interface{}{}
-	err := hitbtc.doRequest("GET", ORDER_URI+"?"+params.Encode(), &resp)
+	err := exchange.doRequest("GET", ORDER_URI+"?"+params.Encode(), &resp)
 	if err != nil {
 		return nil, err
 	}
@@ -305,16 +305,16 @@ func (hitbtc *Hitbtc) GetOrderHistorys(currency goex.CurrencyPair, optional ...g
 
 	orders := []goex.Order{}
 	for _, e := range resp {
-		o := hitbtc.toOrder(e)
+		o := exchange.toOrder(e)
 		orders = append(orders, *o)
 	}
 	return orders, nil
 }
 
 // https://api.hitbtc.com/#account-balance
-func (hitbtc *Hitbtc) GetAccount() (*goex.Account, error) {
+func (exchange *Exchange) GetAccount() (*goex.Account, error) {
 	var ret []interface{}
-	err := hitbtc.doRequest("GET", BALANCE_URI, &ret)
+	err := exchange.doRequest("GET", BALANCE_URI, &ret)
 	if err != nil {
 		return nil, err
 	}
@@ -359,11 +359,11 @@ func (hitbtc *Hitbtc) GetAccount() (*goex.Account, error) {
   ]
 }
 */
-func (hitbtc *Hitbtc) GetDepth(size int, currency goex.CurrencyPair) (*goex.Depth, error) {
+func (exchange *Exchange) GetDepth(size int, currency goex.CurrencyPair) (*goex.Depth, error) {
 	params := url.Values{}
 	params.Set("limit", fmt.Sprintf("%v", size))
 	resp := map[string]interface{}{}
-	err := hitbtc.doRequest("GET", DEPTH_URI+"/"+currency.ToSymbol("")+"?"+params.Encode(), &resp)
+	err := exchange.doRequest("GET", DEPTH_URI+"/"+currency.ToSymbol("")+"?"+params.Encode(), &resp)
 	if err != nil {
 		return nil, err
 	}
@@ -396,7 +396,7 @@ func (hitbtc *Hitbtc) GetDepth(size int, currency goex.CurrencyPair) (*goex.Dept
 	return &goex.Depth{AskList: askList, BidList: bidList}, nil
 }
 
-func (hitbtc *Hitbtc) GetKlineRecords(currency goex.CurrencyPair, period goex.KlinePeriod, size int, opt ...goex.OptionalParameter) ([]goex.Kline, error) {
+func (exchange *Exchange) GetKlineRecords(currency goex.CurrencyPair, period goex.KlinePeriod, size int, opt ...goex.OptionalParameter) ([]goex.Kline, error) {
 	panic("not implement")
 }
 
@@ -425,7 +425,7 @@ curl "https://api.hitbtc.com/api/2/public/candles/ETHBTC?period=M30"
   }
 ]
 */
-func (hitbtc *Hitbtc) GetKline(currencyPair goex.CurrencyPair, period string, size, since int64) ([]goex.Kline, error) {
+func (exchange *Exchange) GetKline(currencyPair goex.CurrencyPair, period string, size, since int64) ([]goex.Kline, error) {
 	switch period {
 	case "M1", "M3", "M5", "M15", "M30", "H1", "H4", "D1", "D7", "1M":
 	default:
@@ -441,7 +441,7 @@ func (hitbtc *Hitbtc) GetKline(currencyPair goex.CurrencyPair, period string, si
 		params.Set("limit", fmt.Sprintf("%v", size))
 	}
 	resp := []map[string]interface{}{}
-	err := hitbtc.doRequest("GET", KLINE_URI+"/"+currencyPair.ToSymbol("")+"?"+params.Encode(), &resp)
+	err := exchange.doRequest("GET", KLINE_URI+"/"+currencyPair.ToSymbol("")+"?"+params.Encode(), &resp)
 	if err != nil {
 		return nil, err
 	}
@@ -482,12 +482,12 @@ curl "https://api.hitbtc.com/api/2/public/trades/ETHBTC?from=2018-05-22T07:22:00
    },
 ]
 */
-func (hitbtc *Hitbtc) GetTrades(currencyPair goex.CurrencyPair, since int64) ([]goex.Trade, error) {
+func (exchange *Exchange) GetTrades(currencyPair goex.CurrencyPair, since int64) ([]goex.Trade, error) {
 	params := url.Values{}
 	timestamp := time.Unix(since, 0).Format("2006-01-02T15:04:05")
 	params.Set("from", timestamp)
 	resp := []map[string]interface{}{}
-	err := hitbtc.doRequest("GET", TRADES_URI+"/"+currencyPair.ToSymbol("")+"?"+params.Encode(), &resp)
+	err := exchange.doRequest("GET", TRADES_URI+"/"+currencyPair.ToSymbol("")+"?"+params.Encode(), &resp)
 	if err != nil {
 		return nil, err
 	}
@@ -506,11 +506,11 @@ func (hitbtc *Hitbtc) GetTrades(currencyPair goex.CurrencyPair, since int64) ([]
 	return trades, nil
 }
 
-func (hitbtc *Hitbtc) doRequest(reqMethod, uri string, ret interface{}) error {
+func (exchange *Exchange) doRequest(reqMethod, uri string, ret interface{}) error {
 	url := API_BASE_URL + API_V2 + uri
 	req, _ := http.NewRequest(reqMethod, url, strings.NewReader(""))
-	req.SetBasicAuth(hitbtc.accessKey, hitbtc.secretKey)
-	resp, err := hitbtc.httpClient.Do(req)
+	req.SetBasicAuth(exchange.accessKey, exchange.secretKey)
+	resp, err := exchange.httpClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -553,7 +553,7 @@ func (hitbtc *Hitbtc) doRequest(reqMethod, uri string, ret interface{}) error {
 	"updatedAt": "2017-05-15T17:01:05.092Z"
 }
 */
-func (hitbtc *Hitbtc) toOrder(resp map[string]interface{}) *goex.Order {
+func (exchange *Exchange) toOrder(resp map[string]interface{}) *goex.Order {
 	return &goex.Order{
 		Price:      goex.ToFloat64(resp["price"]),
 		Amount:     goex.ToFloat64(resp["quantity"]),
@@ -562,7 +562,7 @@ func (hitbtc *Hitbtc) toOrder(resp map[string]interface{}) *goex.Order {
 		OrderID:    goex.ToInt(resp["id"]),
 		OrderTime:  int(parseTime(resp["createdAt"].(string))),
 		Status:     parseStatus(resp["status"].(string)),
-		Currency:   hitbtc.adaptSymbolToCurrencyPair(resp["symbol"].(string)),
+		Currency:   exchange.adaptSymbolToCurrencyPair(resp["symbol"].(string)),
 		Side:       parseSide(resp["side"].(string), resp["type"].(string)),
 	}
 }
@@ -587,11 +587,11 @@ func parseStatus(s string) goex.TradeStatus {
 	return status
 }
 
-func (hitbtc *Hitbtc) adaptCurrencyPair(pair goex.CurrencyPair) goex.CurrencyPair {
+func (exchange *Exchange) adaptCurrencyPair(pair goex.CurrencyPair) goex.CurrencyPair {
 	return pair.AdaptUsdtToUsd()
 }
 
-func (hitbtc *Hitbtc) adaptSymbolToCurrencyPair(pair string) goex.CurrencyPair {
+func (exchange *Exchange) adaptSymbolToCurrencyPair(pair string) goex.CurrencyPair {
 	pair = strings.ToUpper(pair)
 	if strings.HasSuffix(pair, "BTC") {
 		return goex.NewCurrencyPair2(fmt.Sprintf("%s_%s", strings.TrimSuffix(pair, "BTC"), "BTC"))
@@ -638,6 +638,10 @@ func parseSide(side, oType string) goex.TradeSide {
 	}
 }
 
-func (hitbtc *Hitbtc) GetAssets(currency goex.CurrencyPair) (*goex.Assets, error) {
+func (exchange *Exchange) GetAssets(currency goex.CurrencyPair) (*goex.Assets, error) {
+	panic("")
+}
+
+func (exchange *Exchange) GetTradeHistory(currency goex.CurrencyPair, optional ...goex.OptionalParameter) ([]goex.Trade, error) {
 	panic("")
 }

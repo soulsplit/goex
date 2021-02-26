@@ -13,7 +13,7 @@ import (
 )
 
 type OKExSpot struct {
-	*OKEx
+	*Exchange
 }
 
 // [{
@@ -38,7 +38,7 @@ func (ok *OKExSpot) GetAccount() (*Account, error) {
 		Holds     float64 `json:"holds,string"`
 	}
 
-	err := ok.OKEx.DoRequest("GET", urlPath, "", &response)
+	err := ok.Exchange.DoRequest("GET", urlPath, "", &response)
 	if err != nil {
 		return nil, err
 	}
@@ -148,8 +148,8 @@ func (ok *OKExSpot) PlaceOrder(ty string, ord *Order) (*Order, error) {
 		param.OrderType = ORDER_FEATURE_IOC
 	}
 
-	jsonStr, _, _ := ok.OKEx.BuildRequestBody(param)
-	err := ok.OKEx.DoRequest("POST", urlPath, jsonStr, &response)
+	jsonStr, _, _ := ok.Exchange.BuildRequestBody(param)
+	err := ok.Exchange.DoRequest("POST", urlPath, jsonStr, &response)
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +222,7 @@ func (ok *OKExSpot) CancelOrder(orderId string, currency CurrencyPair) (bool, er
 		ErrorCode    string `json:"error_code"`
 		ErrorMessage string `json:"error_message"`
 	}
-	err := ok.OKEx.DoRequest("POST", urlPath, reqBody, &response)
+	err := ok.Exchange.DoRequest("POST", urlPath, reqBody, &response)
 	if err != nil {
 		return false, err
 	}
@@ -297,7 +297,7 @@ func (ok *OKExSpot) GetOneOrder(orderId string, currency CurrencyPair) (*Order, 
 	//}{currency.AdaptUsdToUsdt().ToLower().ToSymbol("-")}
 	//reqBody, _, _ := ok.BuildRequestBody(param)
 	var response OrderResponse
-	err := ok.OKEx.DoRequest("GET", urlPath, "", &response)
+	err := ok.Exchange.DoRequest("GET", urlPath, "", &response)
 	if err != nil {
 		return nil, err
 	}
@@ -311,7 +311,7 @@ func (ok *OKExSpot) GetOneOrder(orderId string, currency CurrencyPair) (*Order, 
 func (ok *OKExSpot) GetUnfinishOrders(currency CurrencyPair) ([]Order, error) {
 	urlPath := fmt.Sprintf("/api/spot/v3/orders_pending?instrument_id=%s", currency.AdaptUsdToUsdt().ToSymbol("-"))
 	var response []OrderResponse
-	err := ok.OKEx.DoRequest("GET", urlPath, "", &response)
+	err := ok.Exchange.DoRequest("GET", urlPath, "", &response)
 	if err != nil {
 		return nil, err
 	}
@@ -337,7 +337,7 @@ func (ok *OKExSpot) GetOrderHistorys(currency CurrencyPair, optional ...Optional
 	urlPath += "?" + param.Encode()
 
 	var response []OrderResponse
-	err := ok.OKEx.DoRequest("GET", urlPath, "", &response)
+	err := ok.Exchange.DoRequest("GET", urlPath, "", &response)
 	if err != nil {
 		return nil, err
 	}
@@ -370,7 +370,7 @@ type spotTickerResponse struct {
 func (ok *OKExSpot) GetTicker(currency CurrencyPair) (*Ticker, error) {
 	urlPath := fmt.Sprintf("/api/spot/v3/instruments/%s/ticker", currency.AdaptUsdToUsdt().ToSymbol("-"))
 	var response spotTickerResponse
-	err := ok.OKEx.DoRequest("GET", urlPath, "", &response)
+	err := ok.Exchange.DoRequest("GET", urlPath, "", &response)
 	if err != nil {
 		return nil, err
 	}
@@ -396,7 +396,7 @@ func (ok *OKExSpot) GetDepth(size int, currency CurrencyPair) (*Depth, error) {
 		Timestamp string          `json:"timestamp"`
 	}
 
-	err := ok.OKEx.DoRequest("GET", urlPath, "", &response)
+	err := ok.Exchange.DoRequest("GET", urlPath, "", &response)
 	if err != nil {
 		return nil, err
 	}

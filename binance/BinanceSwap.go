@@ -18,7 +18,7 @@ const (
 )
 
 type BinanceSwap struct {
-	Binance
+	Exchange
 	f *BinanceFutures
 }
 
@@ -28,7 +28,7 @@ func NewBinanceSwap(config *APIConfig) *BinanceSwap {
 	}
 
 	bs := &BinanceSwap{
-		Binance: Binance{
+		Exchange: Exchange{
 			baseUrl:    config.Endpoint,
 			accessKey:  config.ApiKey,
 			apiV1:      config.Endpoint + "/fapi/v1/",

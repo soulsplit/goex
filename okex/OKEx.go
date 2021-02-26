@@ -16,27 +16,27 @@ import (
 
 const baseUrl = "https://www.okex.com"
 
-type OKEx struct {
+type Exchange struct {
 	config          *APIConfig
 	OKExSpot        *OKExSpot
 	OKExFuture      *OKExFuture
 	OKExSwap        *OKExSwap
 	OKExWallet      *OKExWallet
-	OKExMargin      *OKExMargin
+	OKExMargin      *ExchangeMargin
 	OKExV3FuturesWs *OKExV3FuturesWs
 	OKExV3SpotWs    *OKExV3SpotWs
 	OKExV3SwapWs    *OKExV3SwapWs
 }
 
-func NewOKEx(config *APIConfig) *OKEx {
+func NewOKEx(config *APIConfig) *Exchange {
 	if config.Endpoint == "" {
 		config.Endpoint = baseUrl
 	}
-	okex := &OKEx{config: config}
+	okex := &Exchange{config: config}
 	okex.OKExSpot = &OKExSpot{okex}
-	okex.OKExFuture = &OKExFuture{OKEx: okex, Locker: new(sync.Mutex)}
+	okex.OKExFuture = &OKExFuture{Exchange: okex, Locker: new(sync.Mutex)}
 	okex.OKExWallet = &OKExWallet{okex}
-	okex.OKExMargin = &OKExMargin{okex}
+	okex.OKExMargin = &ExchangeMargin{okex}
 	okex.OKExSwap = &OKExSwap{okex, config}
 	okex.OKExV3FuturesWs = NewOKExV3FuturesWs(okex)
 	okex.OKExV3SpotWs = NewOKExSpotV3Ws(okex)
@@ -44,15 +44,15 @@ func NewOKEx(config *APIConfig) *OKEx {
 	return okex
 }
 
-func (ok *OKEx) GetExchangeName() string {
+func (ok *Exchange) GetExchangeName() string {
 	return OKEX
 }
 
-func (ok *OKEx) UUID() string {
+func (ok *Exchange) UUID() string {
 	return strings.Replace(uuid.New().String(), "-", "", 32)
 }
 
-func (ok *OKEx) DoRequest(httpMethod, uri, reqBody string, response interface{}) error {
+func (ok *Exchange) DoRequest(httpMethod, uri, reqBody string, response interface{}) error {
 	url := ok.config.Endpoint + uri
 	sign, timestamp := ok.doParamSign(httpMethod, uri, reqBody)
 	//logger.Log.Debug("timestamp=", timestamp, ", sign=", sign)
@@ -73,7 +73,7 @@ func (ok *OKEx) DoRequest(httpMethod, uri, reqBody string, response interface{})
 	}
 }
 
-func (ok *OKEx) adaptOrderState(state int) TradeStatus {
+func (ok *Exchange) adaptOrderState(state int) TradeStatus {
 	switch state {
 	case -2:
 		return ORDER_FAIL
@@ -96,7 +96,7 @@ func (ok *OKEx) adaptOrderState(state int) TradeStatus {
 /*
  Get a http request body is a json string and a byte array.
 */
-func (ok *OKEx) BuildRequestBody(params interface{}) (string, *bytes.Reader, error) {
+func (ok *Exchange) BuildRequestBody(params interface{}) (string, *bytes.Reader, error) {
 	if params == nil {
 		return "", nil, errors.New("illegal parameter")
 	}
@@ -112,7 +112,7 @@ func (ok *OKEx) BuildRequestBody(params interface{}) (string, *bytes.Reader, err
 	return jsonBody, binBody, nil
 }
 
-func (ok *OKEx) doParamSign(httpMethod, uri, requestBody string) (string, string) {
+func (ok *Exchange) doParamSign(httpMethod, uri, requestBody string) (string, string) {
 	timestamp := ok.IsoTime()
 	preText := fmt.Sprintf("%s%s%s%s", timestamp, strings.ToUpper(httpMethod), uri, requestBody)
 	//log.Println("preHash", preText)
@@ -124,7 +124,7 @@ func (ok *OKEx) doParamSign(httpMethod, uri, requestBody string) (string, string
  Get a iso time
   eg: 2018-03-16T18:02:48.284Z
 */
-func (ok *OKEx) IsoTime() string {
+func (ok *Exchange) IsoTime() string {
 	utcTime := time.Now().UTC()
 	iso := utcTime.String()
 	isoBytes := []byte(iso)
@@ -132,58 +132,62 @@ func (ok *OKEx) IsoTime() string {
 	return iso
 }
 
-func (ok *OKEx) LimitBuy(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
+func (ok *Exchange) LimitBuy(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
 	return ok.OKExSpot.LimitBuy(amount, price, currency, opt...)
 }
 
-func (ok *OKEx) LimitSell(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
+func (ok *Exchange) LimitSell(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
 	return ok.OKExSpot.LimitSell(amount, price, currency, opt...)
 }
 
-func (ok *OKEx) MarketBuy(amount, price string, currency CurrencyPair) (*Order, error) {
+func (ok *Exchange) MarketBuy(amount, price string, currency CurrencyPair) (*Order, error) {
 	return ok.OKExSpot.MarketBuy(amount, price, currency)
 }
 
-func (ok *OKEx) MarketSell(amount, price string, currency CurrencyPair) (*Order, error) {
+func (ok *Exchange) MarketSell(amount, price string, currency CurrencyPair) (*Order, error) {
 	return ok.OKExSpot.MarketSell(amount, price, currency)
 }
 
-func (ok *OKEx) CancelOrder(orderId string, currency CurrencyPair) (bool, error) {
+func (ok *Exchange) CancelOrder(orderId string, currency CurrencyPair) (bool, error) {
 	return ok.OKExSpot.OKExSpot.CancelOrder(orderId, currency)
 }
 
-func (ok *OKEx) GetOneOrder(orderId string, currency CurrencyPair) (*Order, error) {
+func (ok *Exchange) GetOneOrder(orderId string, currency CurrencyPair) (*Order, error) {
 	return ok.OKExSpot.GetOneOrder(orderId, currency)
 }
 
-func (ok *OKEx) GetUnfinishOrders(currency CurrencyPair) ([]Order, error) {
+func (ok *Exchange) GetUnfinishOrders(currency CurrencyPair) ([]Order, error) {
 	return ok.OKExSpot.GetUnfinishOrders(currency)
 }
 
-func (ok *OKEx) GetOrderHistorys(currency CurrencyPair, opt ...OptionalParameter) ([]Order, error) {
+func (ok *Exchange) GetOrderHistorys(currency CurrencyPair, opt ...OptionalParameter) ([]Order, error) {
 	return ok.OKExSpot.GetOrderHistorys(currency, opt...)
 }
 
-func (ok *OKEx) GetAccount() (*Account, error) {
+func (ok *Exchange) GetAccount() (*Account, error) {
 	return ok.OKExSpot.GetAccount()
 }
 
-func (ok *OKEx) GetTicker(currency CurrencyPair) (*Ticker, error) {
+func (ok *Exchange) GetTicker(currency CurrencyPair) (*Ticker, error) {
 	return ok.OKExSpot.GetTicker(currency)
 }
 
-func (ok *OKEx) GetDepth(size int, currency CurrencyPair) (*Depth, error) {
+func (ok *Exchange) GetDepth(size int, currency CurrencyPair) (*Depth, error) {
 	return ok.OKExSpot.GetDepth(size, currency)
 }
 
-func (ok *OKEx) GetKlineRecords(currency CurrencyPair, period KlinePeriod, size int, optional ...OptionalParameter) ([]Kline, error) {
+func (ok *Exchange) GetKlineRecords(currency CurrencyPair, period KlinePeriod, size int, optional ...OptionalParameter) ([]Kline, error) {
 	return ok.OKExSpot.GetKlineRecords(currency, period, size, optional...)
 }
 
-func (ok *OKEx) GetTrades(currencyPair CurrencyPair, since int64) ([]Trade, error) {
+func (ok *Exchange) GetTrades(currencyPair CurrencyPair, since int64) ([]Trade, error) {
 	return ok.OKExSpot.GetTrades(currencyPair, since)
 }
 
-func (ok *OKEx) GetAssets(currency CurrencyPair) (*Assets, error) {
+func (ok *Exchange) GetAssets(currency CurrencyPair) (*Assets, error) {
+	panic("")
+}
+
+func (exchange *Exchange) GetTradeHistory(currency CurrencyPair, optional ...OptionalParameter) ([]Trade, error) {
 	panic("")
 }

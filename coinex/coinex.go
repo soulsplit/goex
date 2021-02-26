@@ -15,7 +15,7 @@ import (
 	. "github.com/soulsplit/goex"
 )
 
-type CoinEx struct {
+type Exchange struct {
 	httpClient *http.Client
 	accessKey,
 	secretKey string
@@ -25,18 +25,18 @@ var (
 	baseurl = "https://api.coinex.com/v1/"
 )
 
-func New(client *http.Client, accessKey, secretKey string) *CoinEx {
-	return &CoinEx{client, accessKey, secretKey}
+func New(client *http.Client, accessKey, secretKey string) *Exchange {
+	return &Exchange{client, accessKey, secretKey}
 }
 
-func (coinex *CoinEx) GetExchangeName() string {
+func (coinex *Exchange) GetExchangeName() string {
 	return COINEX
 }
 
-func (coinex *CoinEx) GetTicker(currency CurrencyPair) (*Ticker, error) {
+func (exchange *Exchange) GetTicker(currency CurrencyPair) (*Ticker, error) {
 	params := url.Values{}
 	params.Set("market", currency.ToSymbol(""))
-	datamap, err := coinex.doRequest("GET", "market/ticker", &params)
+	datamap, err := exchange.doRequest("GET", "market/ticker", &params)
 	if err != nil {
 		return nil, err
 	}
@@ -53,13 +53,13 @@ func (coinex *CoinEx) GetTicker(currency CurrencyPair) (*Ticker, error) {
 		Vol:  ToFloat64(tickermap["vol"])}, nil
 }
 
-func (coinex *CoinEx) GetDepth(size int, currency CurrencyPair) (*Depth, error) {
+func (exchange *Exchange) GetDepth(size int, currency CurrencyPair) (*Depth, error) {
 	params := url.Values{}
 	params.Set("market", currency.ToSymbol(""))
 	params.Set("merge", "0.00000001")
 	params.Set("limit", fmt.Sprint(size))
 
-	datamap, err := coinex.doRequest("GET", "market/depth", &params)
+	datamap, err := exchange.doRequest("GET", "market/depth", &params)
 	if err != nil {
 		return nil, err
 	}
@@ -86,43 +86,43 @@ func (coinex *CoinEx) GetDepth(size int, currency CurrencyPair) (*Depth, error) 
 	return &dep, nil
 }
 
-func (coinex *CoinEx) placeLimitOrder(side, amount, price string, pair CurrencyPair) (*Order, error) {
+func (exchange *Exchange) placeLimitOrder(side, amount, price string, pair CurrencyPair) (*Order, error) {
 	params := url.Values{}
 	params.Set("market", pair.ToSymbol(""))
 	params.Set("type", side)
 	params.Set("amount", amount)
 	params.Set("price", price)
 
-	retmap, err := coinex.doRequest("POST", "order/limit", &params)
+	retmap, err := exchange.doRequest("POST", "order/limit", &params)
 	if err != nil {
 		return nil, err
 	}
 
-	order := coinex.adaptOrder(retmap, pair)
+	order := exchange.adaptOrder(retmap, pair)
 
 	return &order, nil
 }
 
-func (coinex *CoinEx) LimitBuy(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
-	return coinex.placeLimitOrder("buy", amount, price, currency)
+func (exchange *Exchange) LimitBuy(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
+	return exchange.placeLimitOrder("buy", amount, price, currency)
 }
 
-func (coinex *CoinEx) LimitSell(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
-	return coinex.placeLimitOrder("sell", amount, price, currency)
+func (exchange *Exchange) LimitSell(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
+	return exchange.placeLimitOrder("sell", amount, price, currency)
 }
 
-func (coinex *CoinEx) MarketBuy(amount, price string, currency CurrencyPair) (*Order, error) {
+func (exchange *Exchange) MarketBuy(amount, price string, currency CurrencyPair) (*Order, error) {
 	panic("not implement")
 }
-func (coinex *CoinEx) MarketSell(amount, price string, currency CurrencyPair) (*Order, error) {
+func (exchange *Exchange) MarketSell(amount, price string, currency CurrencyPair) (*Order, error) {
 	panic("not implement")
 }
 
-func (coinex *CoinEx) CancelOrder(orderId string, currency CurrencyPair) (bool, error) {
+func (exchange *Exchange) CancelOrder(orderId string, currency CurrencyPair) (bool, error) {
 	params := url.Values{}
 	params.Set("id", orderId)
 	params.Set("market", currency.ToSymbol(""))
-	_, err := coinex.doRequest("DELETE", "order/pending", &params)
+	_, err := exchange.doRequest("DELETE", "order/pending", &params)
 	if err != nil {
 		return false, err
 	}
@@ -130,28 +130,28 @@ func (coinex *CoinEx) CancelOrder(orderId string, currency CurrencyPair) (bool, 
 	return true, nil
 }
 
-func (coinex *CoinEx) GetOneOrder(orderId string, currency CurrencyPair) (*Order, error) {
+func (exchange *Exchange) GetOneOrder(orderId string, currency CurrencyPair) (*Order, error) {
 	params := url.Values{}
 	params.Set("id", orderId)
 	params.Set("market", currency.ToSymbol(""))
-	retmap, err := coinex.doRequest("GET", "order", &params)
+	retmap, err := exchange.doRequest("GET", "order", &params)
 	if err != nil {
 		if "Order not found" == err.Error() {
 			return nil, EX_ERR_NOT_FIND_ORDER
 		}
 		return nil, err
 	}
-	order := coinex.adaptOrder(retmap, currency)
+	order := exchange.adaptOrder(retmap, currency)
 	return &order, nil
 }
 
-func (coinex *CoinEx) GetPendingOrders(page, limit int, pair CurrencyPair) ([]Order, error) {
+func (exchange *Exchange) GetPendingOrders(page, limit int, pair CurrencyPair) ([]Order, error) {
 	params := url.Values{}
 	params.Set("page", fmt.Sprint(page))
 	params.Set("limit", fmt.Sprint(limit))
 	params.Set("market", pair.ToSymbol(""))
 
-	retmap, err := coinex.doRequest("GET", "order/pending", &params)
+	retmap, err := exchange.doRequest("GET", "order/pending", &params)
 	if err != nil {
 		return nil, err
 	}
@@ -167,18 +167,18 @@ func (coinex *CoinEx) GetPendingOrders(page, limit int, pair CurrencyPair) ([]Or
 	var orders []Order
 	for _, v := range datamap {
 		vv := v.(map[string]interface{})
-		orders = append(orders, coinex.adaptOrder(vv, pair))
+		orders = append(orders, exchange.adaptOrder(vv, pair))
 	}
 
 	return orders, nil
 
 }
 
-func (coinex *CoinEx) GetUnfinishOrders(currency CurrencyPair) ([]Order, error) {
-	return coinex.GetPendingOrders(1, 100, currency)
+func (exchange *Exchange) GetUnfinishOrders(currency CurrencyPair) ([]Order, error) {
+	return exchange.GetPendingOrders(1, 100, currency)
 }
 
-func (coinex *CoinEx) GetOrderHistorys(currency CurrencyPair, optional ...OptionalParameter) ([]Order, error) {
+func (coinex *Exchange) GetOrderHistorys(currency CurrencyPair, optional ...OptionalParameter) ([]Order, error) {
 	panic("not implement")
 }
 
@@ -192,8 +192,8 @@ type coinexDifficulty struct {
 	Message string `json:"message"`
 }
 
-func (coinex *CoinEx) GetDifficulty() (limit, cur float64, err error) {
-	buf, err := coinex.doRequestInner("GET", "order/mining/difficulty", &url.Values{})
+func (exchange *Exchange) GetDifficulty() (limit, cur float64, err error) {
+	buf, err := exchange.doRequestInner("GET", "order/mining/difficulty", &url.Values{})
 	if nil != err {
 		log.Printf("GetDifficulty - http.NewRequest failed : %v", err)
 		return 0.0, 0.0, err
@@ -218,15 +218,15 @@ func (coinex *CoinEx) GetDifficulty() (limit, cur float64, err error) {
 	return limit, cur, nil
 }
 
-func (coinex *CoinEx) GetAccount() (*Account, error) {
-	datamap, err := coinex.doRequest("GET", "balance", &url.Values{})
+func (exchange *Exchange) GetAccount() (*Account, error) {
+	datamap, err := exchange.doRequest("GET", "balance", &url.Values{})
 	if err != nil {
 		return nil, err
 	}
 	//log.Println(datamap)
 	acc := new(Account)
 	acc.SubAccounts = make(map[Currency]SubAccount, 2)
-	acc.Exchange = coinex.GetExchangeName()
+	acc.Exchange = exchange.GetExchangeName()
 	for c, v := range datamap {
 		vv := v.(map[string]interface{})
 		currency := NewCurrency(c, "")
@@ -238,26 +238,26 @@ func (coinex *CoinEx) GetAccount() (*Account, error) {
 	return acc, nil
 }
 
-func (coinex *CoinEx) GetKlineRecords(currency CurrencyPair, period KlinePeriod, size int, opt ...OptionalParameter) ([]Kline, error) {
+func (exchange *Exchange) GetKlineRecords(currency CurrencyPair, period KlinePeriod, size int, opt ...OptionalParameter) ([]Kline, error) {
 	panic("not implement")
 }
 
 //非个人，整个交易所的交易记录
-func (coinex *CoinEx) GetTrades(currencyPair CurrencyPair, since int64) ([]Trade, error) {
+func (exchange *Exchange) GetTrades(currencyPair CurrencyPair, since int64) ([]Trade, error) {
 	panic("not implement")
 }
 
-func (coinex *CoinEx) doRequestInner(method, uri string, params *url.Values) (buf []byte, err error) {
+func (exchange *Exchange) doRequestInner(method, uri string, params *url.Values) (buf []byte, err error) {
 	reqUrl := baseurl + uri
 
 	headermap := map[string]string{
 		"Content-Type": "application/json; charset=utf-8"}
 
 	if !strings.HasPrefix(uri, "market") {
-		params.Set("access_id", coinex.accessKey)
+		params.Set("access_id", exchange.accessKey)
 		params.Set("tonce", fmt.Sprint(time.Now().UnixNano()/int64(time.Millisecond)))
 		//	println(params.Encode() + "&secret_key=" + coinex.secretKey)
-		sign, _ := GetParamMD5Sign("", params.Encode()+"&secret_key="+coinex.secretKey)
+		sign, _ := GetParamMD5Sign("", params.Encode()+"&secret_key="+exchange.secretKey)
 		headermap["authorization"] = strings.ToUpper(sign)
 	}
 
@@ -278,11 +278,11 @@ func (coinex *CoinEx) doRequestInner(method, uri string, params *url.Values) (bu
 		paramStr = string(jsonData)
 	}
 
-	return NewHttpRequest(coinex.httpClient, method, reqUrl, paramStr, headermap)
+	return NewHttpRequest(exchange.httpClient, method, reqUrl, paramStr, headermap)
 }
 
-func (coinex *CoinEx) doRequest(method, uri string, params *url.Values) (map[string]interface{}, error) {
-	resp, err := coinex.doRequestInner(method, uri, params)
+func (exchange *Exchange) doRequest(method, uri string, params *url.Values) (map[string]interface{}, error) {
+	resp, err := exchange.doRequestInner(method, uri, params)
 
 	if err != nil {
 		return nil, err
@@ -304,7 +304,7 @@ func (coinex *CoinEx) doRequest(method, uri string, params *url.Values) (map[str
 	return datamap, nil
 }
 
-func (coinex *CoinEx) adaptTradeSide(side string) TradeSide {
+func (exchange *Exchange) adaptTradeSide(side string) TradeSide {
 	switch side {
 	case "sell":
 		return SELL
@@ -314,7 +314,7 @@ func (coinex *CoinEx) adaptTradeSide(side string) TradeSide {
 	return BUY
 }
 
-func (coinex *CoinEx) adaptTradeStatus(status string) TradeStatus {
+func (exchange *Exchange) adaptTradeStatus(status string) TradeStatus {
 	var tradeStatus TradeStatus = ORDER_UNFINISH
 	switch status {
 	case "not_deal":
@@ -329,7 +329,7 @@ func (coinex *CoinEx) adaptTradeStatus(status string) TradeStatus {
 	return tradeStatus
 }
 
-func (coinex *CoinEx) adaptOrder(ordermap map[string]interface{}, pair CurrencyPair) Order {
+func (exchange *Exchange) adaptOrder(ordermap map[string]interface{}, pair CurrencyPair) Order {
 	return Order{
 		Currency:   pair,
 		OrderID:    ToInt(ordermap["id"]),
@@ -338,12 +338,16 @@ func (coinex *CoinEx) adaptOrder(ordermap map[string]interface{}, pair CurrencyP
 		Price:      ToFloat64(ordermap["price"]),
 		DealAmount: ToFloat64(ordermap["deal_amount"]),
 		AvgPrice:   ToFloat64(ordermap["avg_price"]),
-		Status:     coinex.adaptTradeStatus(ordermap["status"].(string)),
-		Side:       coinex.adaptTradeSide(ordermap["type"].(string)),
+		Status:     exchange.adaptTradeStatus(ordermap["status"].(string)),
+		Side:       exchange.adaptTradeSide(ordermap["type"].(string)),
 		Fee:        ToFloat64(ordermap["deal_fee"]),
 		OrderTime:  ToInt(ordermap["create_time"])}
 }
 
-func (coinex *CoinEx) GetAssets(currency CurrencyPair) (*Assets, error) {
+func (exchange *Exchange) GetAssets(currency CurrencyPair) (*Assets, error) {
+	panic("")
+}
+
+func (exchange *Exchange) GetTradeHistory(currency CurrencyPair, optional ...OptionalParameter) ([]Trade, error) {
 	panic("")
 }

@@ -9,47 +9,47 @@ import (
 	. "github.com/soulsplit/goex"
 )
 
-type Bittrex struct {
+type Exchange struct {
 	client *http.Client
 	baseUrl,
 	accesskey,
 	secretkey string
 }
 
-func New(client *http.Client, accesskey, secretkey string) *Bittrex {
-	return &Bittrex{client: client, accesskey: accesskey, secretkey: secretkey, baseUrl: "https://bittrex.com/api/v1.1"}
+func New(client *http.Client, accesskey, secretkey string) *Exchange {
+	return &Exchange{client: client, accesskey: accesskey, secretkey: secretkey, baseUrl: "https://bittrex.com/api/v1.1"}
 }
 
-func (bx *Bittrex) LimitBuy(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
+func (exchange *Exchange) LimitBuy(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
 	panic("not implement")
 }
-func (bx *Bittrex) LimitSell(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
+func (exchange *Exchange) LimitSell(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
 	panic("not implement")
 }
-func (bx *Bittrex) MarketBuy(amount, price string, currency CurrencyPair) (*Order, error) {
+func (exchange *Exchange) MarketBuy(amount, price string, currency CurrencyPair) (*Order, error) {
 	panic("not implement")
 }
-func (bx *Bittrex) MarketSell(amount, price string, currency CurrencyPair) (*Order, error) {
+func (exchange *Exchange) MarketSell(amount, price string, currency CurrencyPair) (*Order, error) {
 	panic("not implement")
 }
-func (bx *Bittrex) CancelOrder(orderId string, currency CurrencyPair) (bool, error) {
+func (exchange *Exchange) CancelOrder(orderId string, currency CurrencyPair) (bool, error) {
 	panic("not implement")
 }
-func (bx *Bittrex) GetOneOrder(orderId string, currency CurrencyPair) (*Order, error) {
+func (exchange *Exchange) GetOneOrder(orderId string, currency CurrencyPair) (*Order, error) {
 	panic("not implement")
 }
-func (bx *Bittrex) GetUnfinishOrders(currency CurrencyPair) ([]Order, error) {
+func (exchange *Exchange) GetUnfinishOrders(currency CurrencyPair) ([]Order, error) {
 	panic("not implement")
 }
-func (bx *Bittrex) GetOrderHistorys(currency CurrencyPair, optional ...OptionalParameter) ([]Order, error) {
+func (exchange *Exchange) GetOrderHistorys(currency CurrencyPair, optional ...OptionalParameter) ([]Order, error) {
 	panic("not implement")
 }
-func (bx *Bittrex) GetAccount() (*Account, error) {
+func (exchange *Exchange) GetAccount() (*Account, error) {
 	panic("not implement")
 }
 
-func (bx *Bittrex) GetTicker(currency CurrencyPair) (*Ticker, error) {
-	resp, err := HttpGet(bx.client, fmt.Sprintf("%s/public/getmarketsummary?market=%s", bx.baseUrl, currency.ToSymbol2("-")))
+func (exchange *Exchange) GetTicker(currency CurrencyPair) (*Ticker, error) {
+	resp, err := HttpGet(exchange.client, fmt.Sprintf("%s/public/getmarketsummary?market=%s", exchange.baseUrl, currency.ToSymbol2("-")))
 	if err != nil {
 		errCode := HTTP_ERR_CODE
 		errCode.OriginErrMsg = err.Error()
@@ -73,9 +73,9 @@ func (bx *Bittrex) GetTicker(currency CurrencyPair) (*Ticker, error) {
 	}, nil
 }
 
-func (bx *Bittrex) GetDepth(size int, currency CurrencyPair) (*Depth, error) {
+func (exchange *Exchange) GetDepth(size int, currency CurrencyPair) (*Depth, error) {
 
-	resp, err := HttpGet(bx.client, fmt.Sprintf("%s/public/getorderbook?market=%s&type=both", bx.baseUrl, currency.ToSymbol2("-")))
+	resp, err := HttpGet(exchange.client, fmt.Sprintf("%s/public/getorderbook?market=%s&type=both", exchange.baseUrl, currency.ToSymbol2("-")))
 	if err != nil {
 		errCode := HTTP_ERR_CODE
 		errCode.OriginErrMsg = err.Error()
@@ -106,19 +106,23 @@ func (bx *Bittrex) GetDepth(size int, currency CurrencyPair) (*Depth, error) {
 	return dep, nil
 }
 
-func (bx *Bittrex) GetKlineRecords(currency CurrencyPair, period KlinePeriod, size int, opt ...OptionalParameter) ([]Kline, error) {
+func (exchange *Exchange) GetKlineRecords(currency CurrencyPair, period KlinePeriod, size int, opt ...OptionalParameter) ([]Kline, error) {
 	panic("not implement")
 }
 
 //非个人，整个交易所的交易记录
-func (bx *Bittrex) GetTrades(currencyPair CurrencyPair, since int64) ([]Trade, error) {
+func (exchange *Exchange) GetTrades(currencyPair CurrencyPair, since int64) ([]Trade, error) {
 	panic("not implement")
 }
 
-func (bx *Bittrex) GetExchangeName() string {
+func (exchange *Exchange) GetExchangeName() string {
 	return BITTREX
 }
 
-func (bx *Bittrex) GetAssets(currency CurrencyPair) (*Assets, error) {
+func (exchange *Exchange) GetAssets(currency CurrencyPair) (*Assets, error) {
+	panic("")
+}
+
+func (exchange *Exchange) GetTradeHistory(currency CurrencyPair, optional ...OptionalParameter) ([]Trade, error) {
 	panic("")
 }

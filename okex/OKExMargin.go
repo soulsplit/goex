@@ -8,11 +8,11 @@ import (
 	. "github.com/soulsplit/goex"
 )
 
-type OKExMargin struct {
-	*OKEx
+type ExchangeMargin struct {
+	*Exchange
 }
 
-func (ok *OKExMargin) GetMarginAccount(pair CurrencyPair) (*MarginAccount, error) {
+func (ok *ExchangeMargin) GetMarginAccount(pair CurrencyPair) (*MarginAccount, error) {
 	urlPath := fmt.Sprintf("/api/margin/v3/accounts/%s", pair.ToSymbol("-"))
 	var response map[string]interface{}
 	err := ok.DoRequest("GET", urlPath, "", &response)
@@ -54,7 +54,7 @@ func (ok *OKExMargin) GetMarginAccount(pair CurrencyPair) (*MarginAccount, error
   currency： 需要借的币种
   amount : 借的金额
 */
-func (ok *OKExMargin) Borrow(parameter BorrowParameter) (borrowId string, err error) {
+func (ok *ExchangeMargin) Borrow(parameter BorrowParameter) (borrowId string, err error) {
 	var param = struct {
 		InstrumentId string `json:"instrument_id"`
 		Currency     string `json:"currency"`
@@ -85,7 +85,7 @@ func (ok *OKExMargin) Borrow(parameter BorrowParameter) (borrowId string, err er
 	return response.BorrowId, nil
 }
 
-func (ok *OKExMargin) Repayment(parameter RepaymentParameter) (repaymentId string, err error) {
+func (ok *ExchangeMargin) Repayment(parameter RepaymentParameter) (repaymentId string, err error) {
 	urlPath := "/api/margin/v3/accounts/repayment"
 	param := struct {
 		BorrowId     string `json:"borrow_id,omitempty"`
@@ -118,7 +118,7 @@ func (ok *OKExMargin) Repayment(parameter RepaymentParameter) (repaymentId strin
 	return response.RepaymentId, nil
 }
 
-func (ok *OKExMargin) PlaceOrder(ord *Order) (*Order, error) {
+func (ok *ExchangeMargin) PlaceOrder(ord *Order) (*Order, error) {
 	param := PlaceOrderParam{
 		ClientOid:     ok.UUID(),
 		InstrumentId:  ord.Currency.AdaptUsdToUsdt().ToLower().ToSymbol("-"),
@@ -144,8 +144,8 @@ func (ok *OKExMargin) PlaceOrder(ord *Order) (*Order, error) {
 		param.Price = ord.Price
 	}
 
-	jsonStr, _, _ := ok.OKEx.BuildRequestBody(param)
-	err := ok.OKEx.DoRequest("POST", "/api/margin/v3/orders", jsonStr, &response)
+	jsonStr, _, _ := ok.Exchange.BuildRequestBody(param)
+	err := ok.Exchange.DoRequest("POST", "/api/margin/v3/orders", jsonStr, &response)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +160,7 @@ func (ok *OKExMargin) PlaceOrder(ord *Order) (*Order, error) {
 	return ord, nil
 }
 
-func (ok *OKExMargin) GetUnfinishOrders(currency CurrencyPair) ([]Order, error) {
+func (ok *ExchangeMargin) GetUnfinishOrders(currency CurrencyPair) ([]Order, error) {
 	var response []OrderResponse
 	err := ok.DoRequest("GET", fmt.Sprintf("/api/margin/v3/orders_pending?instrument_id=%s", currency.AdaptUsdToUsdt().ToSymbol("-")), "", &response)
 	if err != nil {
@@ -178,7 +178,7 @@ func (ok *OKExMargin) GetUnfinishOrders(currency CurrencyPair) ([]Order, error) 
 	return orders, nil
 }
 
-func (ok *OKExMargin) CancelOrder(orderId string, currency CurrencyPair) (bool, error) {
+func (ok *ExchangeMargin) CancelOrder(orderId string, currency CurrencyPair) (bool, error) {
 	urlPath := fmt.Sprintf("/api/margin/v3/cancel_orders/%s", orderId)
 	reqBody, _, _ := ok.BuildRequestBody(map[string]string{"instrument_id": currency.AdaptUsdToUsdt().ToSymbol("-")})
 	var response struct {
@@ -201,14 +201,14 @@ func (ok *OKExMargin) CancelOrder(orderId string, currency CurrencyPair) (bool, 
 }
 
 //orderId can set client oid or orderId
-func (ok *OKExMargin) GetOneOrder(orderId string, currency CurrencyPair) (*Order, error) {
+func (ok *ExchangeMargin) GetOneOrder(orderId string, currency CurrencyPair) (*Order, error) {
 	urlPath := "/api/margin/v3/orders/" + orderId + "?instrument_id=" + currency.AdaptUsdToUsdt().ToSymbol("-")
 	//param := struct {
 	//	InstrumentId string `json:"instrument_id"`
 	//}{currency.AdaptUsdToUsdt().ToLower().ToSymbol("-")}
 	//reqBody, _, _ := ok.BuildRequestBody(param)
 	var response OrderResponse
-	err := ok.OKEx.DoRequest("GET", urlPath, "", &response)
+	err := ok.Exchange.DoRequest("GET", urlPath, "", &response)
 	if err != nil {
 		return nil, err
 	}

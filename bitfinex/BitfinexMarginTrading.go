@@ -21,7 +21,7 @@ type MarginInfo struct {
 	MarginLimits      []MarginLimits `json:"margin_limits"`
 }
 
-func (bfx *Bitfinex) GetMarginTradingWalletBalance() (*Account, error) {
+func (bfx *Exchange) GetMarginTradingWalletBalance() (*Account, error) {
 	balancemap, err := bfx.GetWalletBalances()
 	if err != nil {
 		return nil, err
@@ -29,23 +29,23 @@ func (bfx *Bitfinex) GetMarginTradingWalletBalance() (*Account, error) {
 	return balancemap["trading"], nil
 }
 
-func (bfx *Bitfinex) MarginLimitBuy(amount, price string, currencyPair CurrencyPair) (*Order, error) {
+func (bfx *Exchange) MarginLimitBuy(amount, price string, currencyPair CurrencyPair) (*Order, error) {
 	return bfx.placeOrder("limit", "buy", amount, price, currencyPair)
 }
 
-func (bfx *Bitfinex) MarginLimitSell(amount, price string, currencyPair CurrencyPair) (*Order, error) {
+func (bfx *Exchange) MarginLimitSell(amount, price string, currencyPair CurrencyPair) (*Order, error) {
 	return bfx.placeOrder("limit", "sell", amount, price, currencyPair)
 }
 
-func (bfx *Bitfinex) MarginMarketBuy(amount, price string, currencyPair CurrencyPair) (*Order, error) {
+func (bfx *Exchange) MarginMarketBuy(amount, price string, currencyPair CurrencyPair) (*Order, error) {
 	return bfx.placeOrder("Market", "buy", amount, price, currencyPair)
 }
 
-func (bfx *Bitfinex) MarginMarketSell(amount, price string, currencyPair CurrencyPair) (*Order, error) {
+func (bfx *Exchange) MarginMarketSell(amount, price string, currencyPair CurrencyPair) (*Order, error) {
 	return bfx.placeOrder("Market", "sell", amount, price, currencyPair)
 }
 
-func (bfx *Bitfinex) GetMarginInfos() ([]MarginInfo, error) {
+func (bfx *Exchange) GetMarginInfos() ([]MarginInfo, error) {
 	var marginInfo []MarginInfo
 	err := bfx.doAuthenticatedRequest("POST", "margin_infos", map[string]interface{}{}, &marginInfo)
 	if err != nil {

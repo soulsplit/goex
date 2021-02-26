@@ -157,7 +157,7 @@ type ExchangeInfo struct {
 	Symbols         []TradeSymbol `json:"symbols"`
 }
 
-type Binance struct {
+type Exchange struct {
 	accessKey  string
 	secretKey  string
 	baseUrl    string
@@ -168,17 +168,17 @@ type Binance struct {
 	*ExchangeInfo
 }
 
-func (bn *Binance) buildParamsSigned(postForm *url.Values) error {
+func (exchange *Exchange) buildParamsSigned(postForm *url.Values) error {
 	postForm.Set("recvWindow", "60000")
-	tonce := strconv.FormatInt(time.Now().UnixNano()+bn.timeOffset, 10)[0:13]
+	tonce := strconv.FormatInt(time.Now().UnixNano()+exchange.timeOffset, 10)[0:13]
 	postForm.Set("timestamp", tonce)
 	payload := postForm.Encode()
-	sign, _ := GetParamHmacSHA256Sign(bn.secretKey, payload)
+	sign, _ := GetParamHmacSHA256Sign(exchange.secretKey, payload)
 	postForm.Set("signature", sign)
 	return nil
 }
 
-func New(client *http.Client, api_key, secret_key string) *Binance {
+func New(client *http.Client, api_key, secret_key string) *Exchange {
 	return NewWithConfig(&APIConfig{
 		HttpClient:   client,
 		Endpoint:     GLOBAL_API_BASE_URL,
@@ -186,12 +186,12 @@ func New(client *http.Client, api_key, secret_key string) *Binance {
 		ApiSecretKey: secret_key})
 }
 
-func NewWithConfig(config *APIConfig) *Binance {
+func NewWithConfig(config *APIConfig) *Exchange {
 	if config.Endpoint == "" {
 		config.Endpoint = GLOBAL_API_BASE_URL
 	}
 
-	bn := &Binance{
+	bn := &Exchange{
 		baseUrl:    config.Endpoint,
 		apiV1:      config.Endpoint + "/api/v1/",
 		apiV3:      config.Endpoint + "/api/v3/",
@@ -202,20 +202,20 @@ func NewWithConfig(config *APIConfig) *Binance {
 	return bn
 }
 
-func (bn *Binance) GetExchangeName() string {
+func (exchange *Exchange) GetExchangeName() string {
 	return BINANCE
 }
 
-func (bn *Binance) Ping() bool {
-	_, err := HttpGet(bn.httpClient, bn.apiV3+"ping")
+func (exchange *Exchange) Ping() bool {
+	_, err := HttpGet(exchange.httpClient, exchange.apiV3+"ping")
 	if err != nil {
 		return false
 	}
 	return true
 }
 
-func (bn *Binance) setTimeOffset() error {
-	respmap, err := HttpGet(bn.httpClient, bn.apiV3+SERVER_TIME_URL)
+func (exchange *Exchange) setTimeOffset() error {
+	respmap, err := HttpGet(exchange.httpClient, exchange.apiV3+SERVER_TIME_URL)
 	if err != nil {
 		return err
 	}
@@ -224,13 +224,13 @@ func (bn *Binance) setTimeOffset() error {
 	st := time.Unix(stime/1000, 1000000*(stime%1000))
 	lt := time.Now()
 	offset := st.Sub(lt).Nanoseconds()
-	bn.timeOffset = int64(offset)
+	exchange.timeOffset = int64(offset)
 	return nil
 }
 
-func (bn *Binance) GetTicker(currency CurrencyPair) (*Ticker, error) {
-	tickerUri := bn.apiV3 + fmt.Sprintf(TICKER_URI, currency.ToSymbol(""))
-	tickerMap, err := HttpGet(bn.httpClient, tickerUri)
+func (exchange *Exchange) GetTicker(currency CurrencyPair) (*Ticker, error) {
+	tickerUri := exchange.apiV3 + fmt.Sprintf(TICKER_URI, currency.ToSymbol(""))
+	tickerMap, err := HttpGet(exchange.httpClient, tickerUri)
 
 	if err != nil {
 		return nil, err
@@ -249,7 +249,7 @@ func (bn *Binance) GetTicker(currency CurrencyPair) (*Ticker, error) {
 	return &ticker, nil
 }
 
-func (bn *Binance) GetDepth(size int, currencyPair CurrencyPair) (*Depth, error) {
+func (exchange *Exchange) GetDepth(size int, currencyPair CurrencyPair) (*Depth, error) {
 	if size <= 5 {
 		size = 5
 	} else if size <= 10 {
@@ -266,8 +266,8 @@ func (bn *Binance) GetDepth(size int, currencyPair CurrencyPair) (*Depth, error)
 		size = 1000
 	}
 
-	apiUrl := fmt.Sprintf(bn.apiV3+DEPTH_URI, currencyPair.ToSymbol(""), size)
-	resp, err := HttpGet(bn.httpClient, apiUrl)
+	apiUrl := fmt.Sprintf(exchange.apiV3+DEPTH_URI, currencyPair.ToSymbol(""), size)
+	resp, err := HttpGet(exchange.httpClient, apiUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -313,8 +313,8 @@ func (bn *Binance) GetDepth(size int, currencyPair CurrencyPair) (*Depth, error)
 	return depth, nil
 }
 
-func (bn *Binance) placeOrder(amount, price string, pair CurrencyPair, orderType, orderSide string) (*Order, error) {
-	path := bn.apiV3 + ORDER_URI
+func (exchange *Exchange) placeOrder(amount, price string, pair CurrencyPair, orderType, orderSide string) (*Order, error) {
+	path := exchange.apiV3 + ORDER_URI
 	params := url.Values{}
 	params.Set("symbol", pair.ToSymbol(""))
 	params.Set("side", orderSide)
@@ -330,10 +330,10 @@ func (bn *Binance) placeOrder(amount, price string, pair CurrencyPair, orderType
 		params.Set("newOrderRespType", "RESULT")
 	}
 
-	bn.buildParamsSigned(&params)
+	exchange.buildParamsSigned(&params)
 
-	resp, err := HttpPostForm2(bn.httpClient, path, params,
-		map[string]string{"X-MBX-APIKEY": bn.accessKey})
+	resp, err := HttpPostForm2(exchange.httpClient, path, params,
+		map[string]string{"X-MBX-APIKEY": exchange.accessKey})
 	if err != nil {
 		return nil, err
 	}
@@ -374,11 +374,11 @@ func (bn *Binance) placeOrder(amount, price string, pair CurrencyPair, orderType
 		OrderTime:  ToInt(respmap["transactTime"])}, nil
 }
 
-func (bn *Binance) GetAccount() (*Account, error) {
+func (exchange *Exchange) GetAccount() (*Account, error) {
 	params := url.Values{}
-	bn.buildParamsSigned(&params)
-	path := bn.apiV3 + ACCOUNT_URI + params.Encode()
-	respmap, err := HttpGet2(bn.httpClient, path, map[string]string{"X-MBX-APIKEY": bn.accessKey})
+	exchange.buildParamsSigned(&params)
+	path := exchange.apiV3 + ACCOUNT_URI + params.Encode()
+	respmap, err := HttpGet2(exchange.httpClient, path, map[string]string{"X-MBX-APIKEY": exchange.accessKey})
 	if err != nil {
 		return nil, err
 	}
@@ -386,7 +386,7 @@ func (bn *Binance) GetAccount() (*Account, error) {
 		return nil, errors.New(respmap["msg"].(string))
 	}
 	acc := Account{}
-	acc.Exchange = bn.GetExchangeName()
+	acc.Exchange = exchange.GetExchangeName()
 	acc.SubAccounts = make(map[Currency]SubAccount)
 
 	balances := respmap["balances"].([]interface{})
@@ -403,34 +403,34 @@ func (bn *Binance) GetAccount() (*Account, error) {
 	return &acc, nil
 }
 
-func (bn *Binance) LimitBuy(amount, price string, currencyPair CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
-	return bn.placeOrder(amount, price, currencyPair, "LIMIT", "BUY")
+func (exchange *Exchange) LimitBuy(amount, price string, currencyPair CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
+	return exchange.placeOrder(amount, price, currencyPair, "LIMIT", "BUY")
 }
 
-func (bn *Binance) LimitSell(amount, price string, currencyPair CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
-	return bn.placeOrder(amount, price, currencyPair, "LIMIT", "SELL")
+func (exchange *Exchange) LimitSell(amount, price string, currencyPair CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
+	return exchange.placeOrder(amount, price, currencyPair, "LIMIT", "SELL")
 }
 
-func (bn *Binance) MarketBuy(amount, price string, currencyPair CurrencyPair) (*Order, error) {
-	return bn.placeOrder(amount, price, currencyPair, "MARKET", "BUY")
+func (exchange *Exchange) MarketBuy(amount, price string, currencyPair CurrencyPair) (*Order, error) {
+	return exchange.placeOrder(amount, price, currencyPair, "MARKET", "BUY")
 }
 
-func (bn *Binance) MarketSell(amount, price string, currencyPair CurrencyPair) (*Order, error) {
-	return bn.placeOrder(amount, price, currencyPair, "MARKET", "SELL")
+func (exchange *Exchange) MarketSell(amount, price string, currencyPair CurrencyPair) (*Order, error) {
+	return exchange.placeOrder(amount, price, currencyPair, "MARKET", "SELL")
 }
 
-func (bn *Binance) CancelOrder(orderId string, currencyPair CurrencyPair) (bool, error) {
-	path := bn.apiV3 + ORDER_URI
+func (exchange *Exchange) CancelOrder(orderId string, currencyPair CurrencyPair) (bool, error) {
+	path := exchange.apiV3 + ORDER_URI
 	params := url.Values{}
 	params.Set("symbol", currencyPair.ToSymbol(""))
 	params.Set("orderId", orderId)
 
-	bn.buildParamsSigned(&params)
+	exchange.buildParamsSigned(&params)
 
-	resp, err := HttpDeleteForm(bn.httpClient, path, params, map[string]string{"X-MBX-APIKEY": bn.accessKey})
+	resp, err := HttpDeleteForm(exchange.httpClient, path, params, map[string]string{"X-MBX-APIKEY": exchange.accessKey})
 
 	if err != nil {
-		return false, bn.adaptError(err)
+		return false, exchange.adaptError(err)
 	}
 
 	respmap := make(map[string]interface{})
@@ -447,7 +447,7 @@ func (bn *Binance) CancelOrder(orderId string, currencyPair CurrencyPair) (bool,
 	return true, nil
 }
 
-func (bn *Binance) GetOneOrder(orderId string, currencyPair CurrencyPair) (*Order, error) {
+func (exchange *Exchange) GetOneOrder(orderId string, currencyPair CurrencyPair) (*Order, error) {
 	params := url.Values{}
 	params.Set("symbol", currencyPair.ToSymbol(""))
 	if orderId != "" {
@@ -455,27 +455,27 @@ func (bn *Binance) GetOneOrder(orderId string, currencyPair CurrencyPair) (*Orde
 	}
 	params.Set("orderId", orderId)
 
-	bn.buildParamsSigned(&params)
-	path := bn.apiV3 + ORDER_URI + "?" + params.Encode()
+	exchange.buildParamsSigned(&params)
+	path := exchange.apiV3 + ORDER_URI + "?" + params.Encode()
 
-	respmap, err := HttpGet2(bn.httpClient, path, map[string]string{"X-MBX-APIKEY": bn.accessKey})
+	respmap, err := HttpGet2(exchange.httpClient, path, map[string]string{"X-MBX-APIKEY": exchange.accessKey})
 	if err != nil {
 		return nil, err
 	}
 
-	order := bn.adaptOrder(currencyPair, respmap)
+	order := exchange.adaptOrder(currencyPair, respmap)
 
 	return &order, nil
 }
 
-func (bn *Binance) GetUnfinishOrders(currencyPair CurrencyPair) ([]Order, error) {
+func (exchange *Exchange) GetUnfinishOrders(currencyPair CurrencyPair) ([]Order, error) {
 	params := url.Values{}
 	params.Set("symbol", currencyPair.ToSymbol(""))
 
-	bn.buildParamsSigned(&params)
-	path := bn.apiV3 + UNFINISHED_ORDERS_INFO + params.Encode()
+	exchange.buildParamsSigned(&params)
+	path := exchange.apiV3 + UNFINISHED_ORDERS_INFO + params.Encode()
 
-	respmap, err := HttpGet3(bn.httpClient, path, map[string]string{"X-MBX-APIKEY": bn.accessKey})
+	respmap, err := HttpGet3(exchange.httpClient, path, map[string]string{"X-MBX-APIKEY": exchange.accessKey})
 	if err != nil {
 		return nil, err
 	}
@@ -483,21 +483,21 @@ func (bn *Binance) GetUnfinishOrders(currencyPair CurrencyPair) ([]Order, error)
 	orders := make([]Order, 0)
 	for _, v := range respmap {
 		ord := v.(map[string]interface{})
-		orders = append(orders, bn.adaptOrder(currencyPair, ord))
+		orders = append(orders, exchange.adaptOrder(currencyPair, ord))
 	}
 
 	return orders, nil
 }
 
-func (bn *Binance) GetKlineRecords(currency CurrencyPair, period KlinePeriod, size int, optional ...OptionalParameter) ([]Kline, error) {
+func (exchange *Exchange) GetKlineRecords(currency CurrencyPair, period KlinePeriod, size int, optional ...OptionalParameter) ([]Kline, error) {
 	params := url.Values{}
 	params.Set("symbol", currency.ToSymbol(""))
 	params.Set("interval", _INERNAL_KLINE_PERIOD_CONVERTER[period])
 	params.Set("limit", fmt.Sprintf("%d", size))
 	MergeOptionalParameter(&params, optional...)
 
-	klineUrl := bn.apiV3 + KLINE_URI + "?" + params.Encode()
-	klines, err := HttpGet3(bn.httpClient, klineUrl, nil)
+	klineUrl := exchange.apiV3 + KLINE_URI + "?" + params.Encode()
+	klines, err := HttpGet3(exchange.httpClient, klineUrl, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -522,16 +522,16 @@ func (bn *Binance) GetKlineRecords(currency CurrencyPair, period KlinePeriod, si
 
 //非个人，整个交易所的交易记录
 //注意：since is fromId
-func (bn *Binance) GetTrades(currencyPair CurrencyPair, since int64) ([]Trade, error) {
+func (exchange *Exchange) GetTrades(currencyPair CurrencyPair, since int64) ([]Trade, error) {
 	param := url.Values{}
 	param.Set("symbol", currencyPair.ToSymbol(""))
 	param.Set("limit", "500")
 	if since > 0 {
 		param.Set("fromId", strconv.Itoa(int(since)))
 	}
-	apiUrl := bn.apiV3 + "historicalTrades?" + param.Encode()
-	resp, err := HttpGet3(bn.httpClient, apiUrl, map[string]string{
-		"X-MBX-APIKEY": bn.accessKey})
+	apiUrl := exchange.apiV3 + "historicalTrades?" + param.Encode()
+	resp, err := HttpGet3(exchange.httpClient, apiUrl, map[string]string{
+		"X-MBX-APIKEY": exchange.accessKey})
 	if err != nil {
 		return nil, err
 	}
@@ -556,15 +556,15 @@ func (bn *Binance) GetTrades(currencyPair CurrencyPair, since int64) ([]Trade, e
 	return trades, nil
 }
 
-func (bn *Binance) GetOrderHistorys(currency CurrencyPair, optional ...OptionalParameter) ([]Order, error) {
+func (exchange *Exchange) GetOrderHistorys(currency CurrencyPair, optional ...OptionalParameter) ([]Order, error) {
 	params := url.Values{}
 	params.Set("symbol", currency.AdaptUsdToUsdt().ToSymbol(""))
 	MergeOptionalParameter(&params, optional...)
-	bn.buildParamsSigned(&params)
+	exchange.buildParamsSigned(&params)
 
-	path := bn.apiV3 + "allOrders?" + params.Encode()
+	path := exchange.apiV3 + "allOrders?" + params.Encode()
 
-	respmap, err := HttpGet3(bn.httpClient, path, map[string]string{"X-MBX-APIKEY": bn.accessKey})
+	respmap, err := HttpGet3(exchange.httpClient, path, map[string]string{"X-MBX-APIKEY": exchange.accessKey})
 	if err != nil {
 		return nil, err
 	}
@@ -572,22 +572,22 @@ func (bn *Binance) GetOrderHistorys(currency CurrencyPair, optional ...OptionalP
 	orders := make([]Order, 0)
 	for _, v := range respmap {
 		orderMap := v.(map[string]interface{})
-		orders = append(orders, bn.adaptOrder(currency, orderMap))
+		orders = append(orders, exchange.adaptOrder(currency, orderMap))
 	}
 
 	return orders, nil
 
 }
 
-func (bn *Binance) toCurrencyPair(symbol string) CurrencyPair {
-	if bn.ExchangeInfo == nil {
+func (exchange *Exchange) toCurrencyPair(symbol string) CurrencyPair {
+	if exchange.ExchangeInfo == nil {
 		var err error
-		bn.ExchangeInfo, err = bn.GetExchangeInfo()
+		exchange.ExchangeInfo, err = exchange.GetExchangeInfo()
 		if err != nil {
 			return CurrencyPair{}
 		}
 	}
-	for _, v := range bn.ExchangeInfo.Symbols {
+	for _, v := range exchange.ExchangeInfo.Symbols {
 		if v.Symbol == symbol {
 			return NewCurrencyPair2(v.BaseAsset + "_" + v.QuoteAsset)
 		}
@@ -595,8 +595,8 @@ func (bn *Binance) toCurrencyPair(symbol string) CurrencyPair {
 	return CurrencyPair{}
 }
 
-func (bn *Binance) GetExchangeInfo() (*ExchangeInfo, error) {
-	resp, err := HttpGet5(bn.httpClient, bn.apiV3+"exchangeInfo", nil)
+func (exchange *Exchange) GetExchangeInfo() (*ExchangeInfo, error) {
+	resp, err := HttpGet5(exchange.httpClient, exchange.apiV3+"exchangeInfo", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -609,23 +609,23 @@ func (bn *Binance) GetExchangeInfo() (*ExchangeInfo, error) {
 	return info, nil
 }
 
-func (bn *Binance) GetTradeSymbol(currencyPair CurrencyPair) (*TradeSymbol, error) {
-	if bn.ExchangeInfo == nil {
+func (exchange *Exchange) GetTradeSymbol(currencyPair CurrencyPair) (*TradeSymbol, error) {
+	if exchange.ExchangeInfo == nil {
 		var err error
-		bn.ExchangeInfo, err = bn.GetExchangeInfo()
+		exchange.ExchangeInfo, err = exchange.GetExchangeInfo()
 		if err != nil {
 			return nil, err
 		}
 	}
-	for k, v := range bn.ExchangeInfo.Symbols {
+	for k, v := range exchange.ExchangeInfo.Symbols {
 		if v.Symbol == currencyPair.ToSymbol("") {
-			return &bn.ExchangeInfo.Symbols[k], nil
+			return &exchange.ExchangeInfo.Symbols[k], nil
 		}
 	}
 	return nil, errors.New("symbol not found")
 }
 
-func (bn *Binance) adaptError(err error) error {
+func (exchange *Exchange) adaptError(err error) error {
 	errStr := err.Error()
 
 	if strings.Contains(errStr, "Order does not exist") ||
@@ -644,7 +644,7 @@ func (bn *Binance) adaptError(err error) error {
 	return err
 }
 
-func (bn *Binance) adaptOrder(currencyPair CurrencyPair, orderMap map[string]interface{}) Order {
+func (exchange *Exchange) adaptOrder(currencyPair CurrencyPair, orderMap map[string]interface{}) Order {
 	side := orderMap["side"].(string)
 
 	orderSide := SELL
@@ -668,6 +668,10 @@ func (bn *Binance) adaptOrder(currencyPair CurrencyPair, orderMap map[string]int
 	}
 }
 
-func (bn *Binance) GetAssets(currency CurrencyPair) (*Assets, error) {
+func (exchange *Exchange) GetAssets(currency CurrencyPair) (*Assets, error) {
+	panic("")
+}
+
+func (exchange *Exchange) GetTradeHistory(currency CurrencyPair, optional ...OptionalParameter) ([]Trade, error) {
 	panic("")
 }

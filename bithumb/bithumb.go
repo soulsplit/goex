@@ -16,7 +16,7 @@ import (
 	. "github.com/soulsplit/goex"
 )
 
-type Bithumb struct {
+type Exchange struct {
 	client *http.Client
 	accesskey,
 	secretkey string
@@ -26,15 +26,15 @@ var (
 	baseUrl = "https://api.bithumb.com"
 )
 
-func New(client *http.Client, accesskey, secretkey string) *Bithumb {
-	return &Bithumb{client: client, accesskey: accesskey, secretkey: secretkey}
+func New(client *http.Client, accesskey, secretkey string) *Exchange {
+	return &Exchange{client: client, accesskey: accesskey, secretkey: secretkey}
 }
 
-func (bit *Bithumb) placeOrder(side, amount, price string, pair CurrencyPair) (*Order, error) {
+func (exchange *Exchange) placeOrder(side, amount, price string, pair CurrencyPair) (*Order, error) {
 	var retmap map[string]interface{}
 	params := fmt.Sprintf("order_currency=%s&units=%s&price=%s&type=%s", pair.CurrencyA.Symbol, amount, price, side)
 	log.Println(params)
-	err := bit.doAuthenticatedRequest("/trade/place", params, &retmap)
+	err := exchange.doAuthenticatedRequest("/trade/place", params, &retmap)
 	if err != nil {
 		return nil, err
 	}
@@ -61,31 +61,31 @@ func (bit *Bithumb) placeOrder(side, amount, price string, pair CurrencyPair) (*
 		Status:   ORDER_UNFINISH}, nil
 }
 
-func (bit *Bithumb) LimitBuy(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
-	return bit.placeOrder("bid", amount, price, currency)
+func (exchange *Exchange) LimitBuy(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
+	return exchange.placeOrder("bid", amount, price, currency)
 }
 
-func (bit *Bithumb) LimitSell(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
-	return bit.placeOrder("ask", amount, price, currency)
+func (exchange *Exchange) LimitSell(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
+	return exchange.placeOrder("ask", amount, price, currency)
 }
 
-func (bit *Bithumb) MarketBuy(amount, price string, currency CurrencyPair) (*Order, error) {
+func (exchange *Exchange) MarketBuy(amount, price string, currency CurrencyPair) (*Order, error) {
 	panic("not implement")
 }
 
-func (bit *Bithumb) MarketSell(amount, price string, currency CurrencyPair) (*Order, error) {
+func (exchange *Exchange) MarketSell(amount, price string, currency CurrencyPair) (*Order, error) {
 	panic("not implement")
 }
 
-func (bit *Bithumb) CancelOrder(orderId string, currency CurrencyPair) (bool, error) {
+func (exchange *Exchange) CancelOrder(orderId string, currency CurrencyPair) (bool, error) {
 	panic("please invoke the CancelOrder2 method.")
 }
 
 /*补丁*/
-func (bit *Bithumb) CancelOrder2(side, orderId string, currency CurrencyPair) (bool, error) {
+func (exchange *Exchange) CancelOrder2(side, orderId string, currency CurrencyPair) (bool, error) {
 	var retmap map[string]interface{}
 	params := fmt.Sprintf("type=%s&order_id=%s&currency=%s", side, orderId, currency.CurrencyA.Symbol)
-	err := bit.doAuthenticatedRequest("/trade/cancel", params, &retmap)
+	err := exchange.doAuthenticatedRequest("/trade/cancel", params, &retmap)
 	if err != nil {
 		return false, err
 	}
@@ -95,15 +95,15 @@ func (bit *Bithumb) CancelOrder2(side, orderId string, currency CurrencyPair) (b
 	return false, errors.New(retmap["status"].(string))
 }
 
-func (bit *Bithumb) GetOneOrder(orderId string, currency CurrencyPair) (*Order, error) {
+func (exchange *Exchange) GetOneOrder(orderId string, currency CurrencyPair) (*Order, error) {
 	panic("please invoke the GetOneOrder2 method.")
 }
 
 /*补丁*/
-func (bit *Bithumb) GetOneOrder2(side, orderId string, currency CurrencyPair) (*Order, error) {
+func (exchange *Exchange) GetOneOrder2(side, orderId string, currency CurrencyPair) (*Order, error) {
 	var retmap map[string]interface{}
 	params := fmt.Sprintf("type=%s&order_id=%s&currency=%s", side, orderId, currency.CurrencyA.Symbol)
-	err := bit.doAuthenticatedRequest("/info/order_detail", params, &retmap)
+	err := exchange.doAuthenticatedRequest("/info/order_detail", params, &retmap)
 	if err != nil {
 		return nil, err
 	}
@@ -145,10 +145,10 @@ func (bit *Bithumb) GetOneOrder2(side, orderId string, currency CurrencyPair) (*
 	return order, nil
 }
 
-func (bit *Bithumb) GetUnfinishOrders(currency CurrencyPair) ([]Order, error) {
+func (exchange *Exchange) GetUnfinishOrders(currency CurrencyPair) ([]Order, error) {
 	var retmap map[string]interface{}
 	params := fmt.Sprintf("currency=%s", currency.CurrencyA.Symbol)
-	err := bit.doAuthenticatedRequest("/info/orders", params, &retmap)
+	err := exchange.doAuthenticatedRequest("/info/orders", params, &retmap)
 	if err != nil {
 		return nil, err
 	}
@@ -201,13 +201,13 @@ func (bit *Bithumb) GetUnfinishOrders(currency CurrencyPair) ([]Order, error) {
 	return orders, nil
 }
 
-func (bit *Bithumb) GetOrderHistorys(currency CurrencyPair, optional ...OptionalParameter) ([]Order, error) {
+func (exchange *Exchange) GetOrderHistorys(currency CurrencyPair, optional ...OptionalParameter) ([]Order, error) {
 	panic("not implement")
 }
 
-func (bit *Bithumb) GetAccount() (*Account, error) {
+func (exchange *Exchange) GetAccount() (*Account, error) {
 	var retmap map[string]interface{}
-	err := bit.doAuthenticatedRequest("/info/balance", "currency=ALL", &retmap)
+	err := exchange.doAuthenticatedRequest("/info/balance", "currency=ALL", &retmap)
 	if err != nil {
 		return nil, err
 	}
@@ -226,11 +226,11 @@ func (bit *Bithumb) GetAccount() (*Account, error) {
 		}
 	}
 	//log.Println(datamap)
-	acc.Exchange = bit.GetExchangeName()
+	acc.Exchange = exchange.GetExchangeName()
 	return acc, nil
 }
 
-func (bit *Bithumb) doAuthenticatedRequest(uri, params string, ret interface{}) error {
+func (exchange *Exchange) doAuthenticatedRequest(uri, params string, ret interface{}) error {
 	nonce := time.Now().UnixNano() / int64(time.Millisecond)
 	api_nonce := fmt.Sprint(nonce)
 	e_endpoint := url.QueryEscape(uri)
@@ -238,14 +238,14 @@ func (bit *Bithumb) doAuthenticatedRequest(uri, params string, ret interface{}) 
 
 	// Api-Sign information generation.
 	hmac_data := uri + string(0) + params + string(0) + api_nonce
-	hash_hmac_str := GetParamHmacSHA512Base64Sign(bit.secretkey, hmac_data)
+	hash_hmac_str := GetParamHmacSHA512Base64Sign(exchange.secretkey, hmac_data)
 	api_sign := hash_hmac_str
 	content_length_str := strconv.Itoa(len(params))
 
 	// Connects to Bithumb API server and returns JSON result value.
-	resp, err := NewHttpRequest(bit.client, "POST", baseUrl+uri,
+	resp, err := NewHttpRequest(exchange.client, "POST", baseUrl+uri,
 		bytes.NewBufferString(params).String(), map[string]string{
-			"Api-Key":        bit.accesskey,
+			"Api-Key":        exchange.accesskey,
 			"Api-Sign":       api_sign,
 			"Api-Nonce":      api_nonce,
 			"Content-Type":   "application/x-www-form-urlencoded",
@@ -261,8 +261,8 @@ func (bit *Bithumb) doAuthenticatedRequest(uri, params string, ret interface{}) 
 	return err
 }
 
-func (bit *Bithumb) GetTicker(currency CurrencyPair) (*Ticker, error) {
-	respmap, err := HttpGet(bit.client, fmt.Sprintf("%s/public/ticker/%s", baseUrl, currency.CurrencyA))
+func (exchange *Exchange) GetTicker(currency CurrencyPair) (*Ticker, error) {
+	respmap, err := HttpGet(exchange.client, fmt.Sprintf("%s/public/ticker/%s", baseUrl, currency.CurrencyA))
 	if err != nil {
 		return nil, err
 	}
@@ -287,8 +287,8 @@ func (bit *Bithumb) GetTicker(currency CurrencyPair) (*Ticker, error) {
 	}, nil
 }
 
-func (bit *Bithumb) GetDepth(size int, currency CurrencyPair) (*Depth, error) {
-	resp, err := HttpGet(bit.client, fmt.Sprintf("%s/public/orderbook/%s", baseUrl, currency.CurrencyA))
+func (exchange *Exchange) GetDepth(size int, currency CurrencyPair) (*Depth, error) {
+	resp, err := HttpGet(exchange.client, fmt.Sprintf("%s/public/orderbook/%s", baseUrl, currency.CurrencyA))
 	if err != nil {
 		return nil, err
 	}
@@ -318,19 +318,23 @@ func (bit *Bithumb) GetDepth(size int, currency CurrencyPair) (*Depth, error) {
 	return dep, nil
 }
 
-func (bit *Bithumb) GetKlineRecords(currency CurrencyPair, period KlinePeriod, size int, opt ...OptionalParameter) ([]Kline, error) {
+func (exchange *Exchange) GetKlineRecords(currency CurrencyPair, period KlinePeriod, size int, opt ...OptionalParameter) ([]Kline, error) {
 	panic("not implement")
 }
 
 //非个人，整个交易所的交易记录
-func (bit *Bithumb) GetTrades(currencyPair CurrencyPair, since int64) ([]Trade, error) {
+func (exchange *Exchange) GetTrades(currencyPair CurrencyPair, since int64) ([]Trade, error) {
 	panic("not implement")
 }
 
-func (bit *Bithumb) GetExchangeName() string {
+func (exchange *Exchange) GetExchangeName() string {
 	return BITHUMB
 }
 
-func (bit *Bithumb) GetAssets(currency CurrencyPair) (*Assets, error) {
+func (exchange *Exchange) GetAssets(currency CurrencyPair) (*Assets, error) {
+	panic("")
+}
+
+func (exchange *Exchange) GetTradeHistory(currency CurrencyPair, optional ...OptionalParameter) ([]Trade, error) {
 	panic("")
 }

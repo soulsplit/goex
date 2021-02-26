@@ -13,7 +13,7 @@ const (
 	SecretKey = ""
 )
 
-var htb *Hitbtc
+var htb *Exchange
 
 func init() {
 	htb = New(http.DefaultClient, PubKey, SecretKey)

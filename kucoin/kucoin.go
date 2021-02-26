@@ -8,7 +8,7 @@ import (
 	log "github.com/soulsplit/goex/internal/logger"
 )
 
-func New(apiKey, apiSecret, apiPassphrase string) *KuCoin {
+func New(apiKey, apiSecret, apiPassphrase string) *Exchange {
 	return NewWithConfig(&APIConfig{
 		Endpoint:      "https://api.kucoin.com",
 		ApiKey:        apiKey,
@@ -17,12 +17,12 @@ func New(apiKey, apiSecret, apiPassphrase string) *KuCoin {
 	})
 }
 
-func NewWithConfig(config *APIConfig) *KuCoin {
+func NewWithConfig(config *APIConfig) *Exchange {
 	if config.Endpoint == "" {
 		config.Endpoint = "https://api.kucoin.com"
 	}
 
-	kc := &KuCoin{
+	kc := &Exchange{
 		baseUrl:       config.Endpoint,
 		apiKey:        config.ApiKey,
 		apiSecret:     config.ApiSecretKey,
@@ -39,7 +39,7 @@ func NewWithConfig(config *APIConfig) *KuCoin {
 	return kc
 }
 
-type KuCoin struct {
+type Exchange struct {
 	apiKey        string
 	apiSecret     string
 	baseUrl       string
@@ -64,12 +64,12 @@ var inernalKlinePeriodConverter = map[KlinePeriod]string{
 	KLINE_PERIOD_1WEEK: "1week",
 }
 
-func (kc *KuCoin) GetExchangeName() string {
+func (exchange *Exchange) GetExchangeName() string {
 	return KUCOIN
 }
 
-func (kc *KuCoin) GetTicker(currency CurrencyPair) (*Ticker, error) {
-	resp, err := kc.service.TickerLevel1(currency.ToSymbol("-"))
+func (exchange *Exchange) GetTicker(currency CurrencyPair) (*Ticker, error) {
+	resp, err := exchange.service.TickerLevel1(currency.ToSymbol("-"))
 	if err != nil {
 		log.Error("KuCoin GetTicker error:", err)
 		return nil, err
@@ -92,7 +92,7 @@ func (kc *KuCoin) GetTicker(currency CurrencyPair) (*Ticker, error) {
 	return &ticker, nil
 }
 
-func (kc *KuCoin) LimitBuy(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
+func (exchange *Exchange) LimitBuy(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
 	clientID := GenerateOrderClientId(32)
 	in := kucoin.CreateOrderModel{
 		ClientOid: clientID,
@@ -102,7 +102,7 @@ func (kc *KuCoin) LimitBuy(amount, price string, currency CurrencyPair, opt ...L
 		Price:     price,
 		Size:      amount,
 	}
-	resp, err := kc.service.CreateOrder(&in)
+	resp, err := exchange.service.CreateOrder(&in)
 	if err != nil {
 		log.Error("KuCoin LimitBuy error:", err)
 		return nil, err
@@ -122,7 +122,7 @@ func (kc *KuCoin) LimitBuy(amount, price string, currency CurrencyPair, opt ...L
 	return &order, nil
 }
 
-func (kc *KuCoin) LimitSell(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
+func (exchange *Exchange) LimitSell(amount, price string, currency CurrencyPair, opt ...LimitOrderOptionalParameter) (*Order, error) {
 	clientID := GenerateOrderClientId(32)
 	in := kucoin.CreateOrderModel{
 		ClientOid: clientID,
@@ -132,7 +132,7 @@ func (kc *KuCoin) LimitSell(amount, price string, currency CurrencyPair, opt ...
 		Price:     price,
 		Size:      amount,
 	}
-	resp, err := kc.service.CreateOrder(&in)
+	resp, err := exchange.service.CreateOrder(&in)
 	if err != nil {
 		log.Error("KuCoin LimitSell error:", err)
 		return nil, err
@@ -152,7 +152,7 @@ func (kc *KuCoin) LimitSell(amount, price string, currency CurrencyPair, opt ...
 	return &order, nil
 }
 
-func (kc *KuCoin) MarketBuy(amount, price string, currency CurrencyPair) (*Order, error) {
+func (exchange *Exchange) MarketBuy(amount, price string, currency CurrencyPair) (*Order, error) {
 	clientID := GenerateOrderClientId(32)
 	in := kucoin.CreateOrderModel{
 		ClientOid: clientID,
@@ -163,7 +163,7 @@ func (kc *KuCoin) MarketBuy(amount, price string, currency CurrencyPair) (*Order
 		Size:      amount,
 	}
 
-	resp, err := kc.service.CreateOrder(&in)
+	resp, err := exchange.service.CreateOrder(&in)
 	if err != nil {
 		log.Error("KuCoin MarketBuy error:", err)
 		return nil, err
@@ -183,7 +183,7 @@ func (kc *KuCoin) MarketBuy(amount, price string, currency CurrencyPair) (*Order
 	return &order, nil
 }
 
-func (kc *KuCoin) MarketSell(amount, price string, currency CurrencyPair) (*Order, error) {
+func (exchange *Exchange) MarketSell(amount, price string, currency CurrencyPair) (*Order, error) {
 	clientID := GenerateOrderClientId(32)
 	in := kucoin.CreateOrderModel{
 		ClientOid: clientID,
@@ -193,7 +193,7 @@ func (kc *KuCoin) MarketSell(amount, price string, currency CurrencyPair) (*Orde
 		Price:     price,
 		Size:      amount,
 	}
-	resp, err := kc.service.CreateOrder(&in)
+	resp, err := exchange.service.CreateOrder(&in)
 	if err != nil {
 		log.Error("KuCoin MarketSell error:", err)
 		return nil, err
@@ -213,13 +213,13 @@ func (kc *KuCoin) MarketSell(amount, price string, currency CurrencyPair) (*Orde
 	return &order, nil
 }
 
-func (kc *KuCoin) CancelOrder(orderId string, currency CurrencyPair) (bool, error) {
+func (exchange *Exchange) CancelOrder(orderId string, currency CurrencyPair) (bool, error) {
 	var resp *kucoin.ApiResponse
 	var err error
 	if orderId != "" {
-		resp, err = kc.service.CancelOrder(orderId)
+		resp, err = exchange.service.CancelOrder(orderId)
 	} else {
-		resp, err = kc.service.CancelOrder(currency.ToSymbol("-"))
+		resp, err = exchange.service.CancelOrder(currency.ToSymbol("-"))
 	}
 
 	if err != nil {
@@ -236,8 +236,8 @@ func (kc *KuCoin) CancelOrder(orderId string, currency CurrencyPair) (bool, erro
 	return true, nil
 }
 
-func (kc *KuCoin) GetOneOrder(orderId string, currency CurrencyPair) (*Order, error) {
-	resp, err := kc.service.Order(orderId)
+func (exchange *Exchange) GetOneOrder(orderId string, currency CurrencyPair) (*Order, error) {
+	resp, err := exchange.service.Order(orderId)
 	if err != nil {
 		log.Error("KuCoin GetOneOrder error:", err)
 		return nil, err
@@ -293,12 +293,12 @@ func (kc *KuCoin) GetOneOrder(orderId string, currency CurrencyPair) (*Order, er
 	return &order, nil
 }
 
-func (kc *KuCoin) GetUnfinishOrders(currency CurrencyPair) ([]Order, error) {
+func (exchange *Exchange) GetUnfinishOrders(currency CurrencyPair) ([]Order, error) {
 	params := map[string]string{
 		"status": "active",
 		"symbol": currency.ToSymbol("-"),
 	}
-	resp, err := kc.service.Orders(params, nil)
+	resp, err := exchange.service.Orders(params, nil)
 	if err != nil {
 		log.Error("KuCoin GetUnfinishOrders error:", err)
 		return nil, err
@@ -315,7 +315,7 @@ func (kc *KuCoin) GetUnfinishOrders(currency CurrencyPair) ([]Order, error) {
 	return orders, nil
 }
 
-func (kc *KuCoin) GetOrderHistorys(currency CurrencyPair, optional ...OptionalParameter) ([]Order, error) {
+func (exchange *Exchange) GetOrderHistorys(currency CurrencyPair, optional ...OptionalParameter) ([]Order, error) {
 	params := map[string]string{
 		"status": "done",
 		"symbol": currency.ToSymbol("-"),
@@ -328,7 +328,7 @@ func (kc *KuCoin) GetOrderHistorys(currency CurrencyPair, optional ...OptionalPa
 		pagination.PageSize = ToInt64(optional[0]["pageSize"])
 	}
 
-	resp, err := kc.service.Orders(params, &pagination)
+	resp, err := exchange.service.Orders(params, &pagination)
 	if err != nil {
 		log.Error("KuCoin GetOrderHistorys error:", err)
 		return nil, err
@@ -345,15 +345,15 @@ func (kc *KuCoin) GetOrderHistorys(currency CurrencyPair, optional ...OptionalPa
 	return orders, nil
 }
 
-func (kc *KuCoin) GetAccount() (*Account, error) {
-	accs, err := kc.Accounts("", "")
+func (exchange *Exchange) GetAccount() (*Account, error) {
+	accs, err := exchange.Accounts("", "")
 	if err != nil {
 		log.Error("KuCoin GetAccount error:", err)
 		return nil, err
 	}
 
 	account := Account{}
-	account.Exchange = kc.GetExchangeName()
+	account.Exchange = exchange.GetExchangeName()
 	account.SubAccounts = make(map[Currency]SubAccount)
 
 	for _, v := range accs {
@@ -377,12 +377,12 @@ func (kc *KuCoin) GetAccount() (*Account, error) {
 	return &account, nil
 }
 
-func (kc *KuCoin) GetDepth(size int, currency CurrencyPair) (*Depth, error) {
+func (exchange *Exchange) GetDepth(size int, currency CurrencyPair) (*Depth, error) {
 	dep := 20
 	if size > 20 {
 		dep = 100
 	}
-	resp, err := kc.service.AggregatedPartOrderBook(currency.ToSymbol("-"), int64(dep))
+	resp, err := exchange.service.AggregatedPartOrderBook(currency.ToSymbol("-"), int64(dep))
 	if err != nil {
 		log.Error("KuCoin GetDepth error:", err)
 		return nil, err
@@ -419,8 +419,8 @@ func (kc *KuCoin) GetDepth(size int, currency CurrencyPair) (*Depth, error) {
 	return &depth, nil
 }
 
-func (kc *KuCoin) GetKlineRecords(currency CurrencyPair, period KlinePeriod, size int, optional ...OptionalParameter) ([]Kline, error) {
-	resp, err := kc.service.KLines(currency.ToSymbol("-"), inernalKlinePeriodConverter[period], 0, 0)
+func (exchange *Exchange) GetKlineRecords(currency CurrencyPair, period KlinePeriod, size int, optional ...OptionalParameter) ([]Kline, error) {
+	resp, err := exchange.service.KLines(currency.ToSymbol("-"), inernalKlinePeriodConverter[period], 0, 0)
 
 	if err != nil {
 		log.Error("KuCoin GetKlineRecords error:", err)
@@ -452,8 +452,8 @@ func (kc *KuCoin) GetKlineRecords(currency CurrencyPair, period KlinePeriod, siz
 	return kLines, nil
 }
 
-func (kc *KuCoin) GetTrades(currency CurrencyPair, since int64) ([]Trade, error) {
-	resp, err := kc.service.TradeHistories(currency.ToSymbol("-"))
+func (exchange *Exchange) GetTrades(currency CurrencyPair, since int64) ([]Trade, error) {
+	resp, err := exchange.service.TradeHistories(currency.ToSymbol("-"))
 	if err != nil {
 		log.Error("KuCoin GetTrades error:", err)
 		return nil, err
@@ -490,8 +490,8 @@ func (kc *KuCoin) GetTrades(currency CurrencyPair, since int64) ([]Trade, error)
 // Account
 
 // Accounts returns a list of accounts.
-func (kc *KuCoin) Accounts(currency, typo string) (kucoin.AccountsModel, error) {
-	resp, err := kc.service.Accounts(currency, typo)
+func (exchange *Exchange) Accounts(currency, typo string) (kucoin.AccountsModel, error) {
+	resp, err := exchange.service.Accounts(currency, typo)
 	if err != nil {
 		log.Error("KuCoin Accounts error:", err)
 		return nil, err
@@ -508,8 +508,8 @@ func (kc *KuCoin) Accounts(currency, typo string) (kucoin.AccountsModel, error) 
 }
 
 // Account returns an account when you know the accountId.
-func (kc *KuCoin) Account(accountId string) (*kucoin.AccountModel, error) {
-	resp, err := kc.service.Account(accountId)
+func (exchange *Exchange) Account(accountId string) (*kucoin.AccountModel, error) {
+	resp, err := exchange.service.Account(accountId)
 	if err != nil {
 		log.Error("KuCoin Accounts error:", err)
 		return nil, err
@@ -526,8 +526,8 @@ func (kc *KuCoin) Account(accountId string) (*kucoin.AccountModel, error) {
 }
 
 // SubAccountUsers returns a list of sub-account user.
-func (kc *KuCoin) SubAccountUsers() (kucoin.SubAccountUsersModel, error) {
-	resp, err := kc.service.SubAccountUsers()
+func (exchange *Exchange) SubAccountUsers() (kucoin.SubAccountUsersModel, error) {
+	resp, err := exchange.service.SubAccountUsers()
 	if err != nil {
 		log.Error("KuCoin SubAccountUsers error:", err)
 		return nil, err
@@ -544,8 +544,8 @@ func (kc *KuCoin) SubAccountUsers() (kucoin.SubAccountUsersModel, error) {
 }
 
 // SubAccounts returns the aggregated balance of all sub-accounts of the current user.
-func (kc *KuCoin) SubAccounts() (kucoin.SubAccountsModel, error) {
-	resp, err := kc.service.SubAccounts()
+func (exchange *Exchange) SubAccounts() (kucoin.SubAccountsModel, error) {
+	resp, err := exchange.service.SubAccounts()
 	if err != nil {
 		log.Error("KuCoin SubAccounts error:", err)
 		return nil, err
@@ -562,8 +562,8 @@ func (kc *KuCoin) SubAccounts() (kucoin.SubAccountsModel, error) {
 }
 
 // SubAccount returns the detail of a sub-account.
-func (kc *KuCoin) SubAccount(subUserId string) (*kucoin.SubAccountModel, error) {
-	resp, err := kc.service.SubAccount(subUserId)
+func (exchange *Exchange) SubAccount(subUserId string) (*kucoin.SubAccountModel, error) {
+	resp, err := exchange.service.SubAccount(subUserId)
 	if err != nil {
 		log.Error("KuCoin SubAccount error:", err)
 		return nil, err
@@ -581,8 +581,8 @@ func (kc *KuCoin) SubAccount(subUserId string) (*kucoin.SubAccountModel, error) 
 
 // CreateAccount creates an account according to type(main|trade) and currency
 // Parameter #1 typo is type of account.
-func (kc *KuCoin) CreateAccount(typo, currency string) (*kucoin.AccountModel, error) {
-	resp, err := kc.service.CreateAccount(typo, currency)
+func (exchange *Exchange) CreateAccount(typo, currency string) (*kucoin.AccountModel, error) {
+	resp, err := exchange.service.CreateAccount(typo, currency)
 	if err != nil {
 		log.Error("KuCoin CreateAccount error:", err)
 		return nil, err
@@ -600,8 +600,8 @@ func (kc *KuCoin) CreateAccount(typo, currency string) (*kucoin.AccountModel, er
 
 // The inner transfer interface is used for transferring assets between the accounts of a user and is free of charges.
 // For example, a user could transfer assets from their main account to their trading account on the platform.
-func (kc *KuCoin) InnerTransfer(currency, from, to, amount string) (string, error) {
-	resp, err := kc.service.InnerTransferV2(GenerateOrderClientId(32), currency, from, to, amount)
+func (exchange *Exchange) InnerTransfer(currency, from, to, amount string) (string, error) {
+	resp, err := exchange.service.InnerTransferV2(GenerateOrderClientId(32), currency, from, to, amount)
 	if err != nil {
 		log.Error("KuCoin InnerTransfer error:", err)
 		return "", err
@@ -618,7 +618,7 @@ func (kc *KuCoin) InnerTransfer(currency, from, to, amount string) (string, erro
 }
 
 // SubTransfer transfers between master account and sub-account.
-func (kc *KuCoin) SubTransfer(currency, amount, direction, subUserId, accountType, subAccountType string) (string, error) {
+func (exchange *Exchange) SubTransfer(currency, amount, direction, subUserId, accountType, subAccountType string) (string, error) {
 	params := map[string]string{
 		"clientOid":      GenerateOrderClientId(32),
 		"currency":       currency,
@@ -628,7 +628,7 @@ func (kc *KuCoin) SubTransfer(currency, amount, direction, subUserId, accountTyp
 		"accountType":    accountType,    // The account type of the master user: MAIN
 		"subAccountType": subAccountType, //The account type of the sub user: MAIN, TRADE or MARGIN
 	}
-	resp, err := kc.service.SubTransfer(params)
+	resp, err := exchange.service.SubTransfer(params)
 	if err != nil {
 		log.Error("KuCoin SubTransfer error:", err)
 		return "", err
@@ -647,8 +647,8 @@ func (kc *KuCoin) SubTransfer(currency, amount, direction, subUserId, accountTyp
 // Deposits
 
 // CreateDepositAddress creates a deposit address.
-func (kc *KuCoin) CreateDepositAddress(currency, chain string) (*kucoin.DepositAddressModel, error) {
-	resp, err := kc.service.CreateDepositAddress(currency, chain)
+func (exchange *Exchange) CreateDepositAddress(currency, chain string) (*kucoin.DepositAddressModel, error) {
+	resp, err := exchange.service.CreateDepositAddress(currency, chain)
 	if err != nil {
 		log.Error("KuCoin CreateDepositAddress error:", err)
 		return nil, err
@@ -666,8 +666,8 @@ func (kc *KuCoin) CreateDepositAddress(currency, chain string) (*kucoin.DepositA
 
 // DepositAddresses returns the deposit address of currency for deposit.
 // If return data is empty, you may need create a deposit address first.
-func (kc *KuCoin) DepositAddresses(currency, chain string) (*kucoin.DepositAddressModel, error) {
-	resp, err := kc.service.DepositAddresses(currency, chain)
+func (exchange *Exchange) DepositAddresses(currency, chain string) (*kucoin.DepositAddressModel, error) {
+	resp, err := exchange.service.DepositAddresses(currency, chain)
 	if err != nil {
 		log.Error("KuCoin DepositAddresses error:", err)
 		return nil, err
@@ -684,14 +684,14 @@ func (kc *KuCoin) DepositAddresses(currency, chain string) (*kucoin.DepositAddre
 }
 
 // Deposits returns a list of deposit.
-func (kc *KuCoin) Deposits(currency, startAt, endAt, status string) (*kucoin.DepositsModel, error) {
+func (exchange *Exchange) Deposits(currency, startAt, endAt, status string) (*kucoin.DepositsModel, error) {
 	params := map[string]string{
 		"currency": currency,
 		"startAt":  startAt,
 		"endAt":    endAt,
 		"status":   status,
 	}
-	resp, err := kc.service.Deposits(params, nil)
+	resp, err := exchange.service.Deposits(params, nil)
 	if err != nil {
 		log.Error("KuCoin Deposits error:", err)
 		return nil, err
@@ -710,14 +710,14 @@ func (kc *KuCoin) Deposits(currency, startAt, endAt, status string) (*kucoin.Dep
 // Withdrawals
 
 // Deposits returns a list of deposit.
-func (kc *KuCoin) Withdrawals(currency, startAt, endAt, status string) (*kucoin.WithdrawalsModel, error) {
+func (exchange *Exchange) Withdrawals(currency, startAt, endAt, status string) (*kucoin.WithdrawalsModel, error) {
 	params := map[string]string{
 		"currency": currency,
 		"startAt":  startAt,
 		"endAt":    endAt,
 		"status":   status,
 	}
-	resp, err := kc.service.Withdrawals(params, nil)
+	resp, err := exchange.service.Withdrawals(params, nil)
 	if err != nil {
 		log.Error("KuCoin Withdrawals error:", err)
 		return nil, err
@@ -734,8 +734,8 @@ func (kc *KuCoin) Withdrawals(currency, startAt, endAt, status string) (*kucoin.
 }
 
 // ApplyWithdrawal applies a withdrawal.
-func (kc *KuCoin) ApplyWithdrawal(currency, address, amount, memo, isInner, remark, chain string) (string, error) {
-	resp, err := kc.service.ApplyWithdrawal(currency, address, amount, map[string]string{
+func (exchange *Exchange) ApplyWithdrawal(currency, address, amount, memo, isInner, remark, chain string) (string, error) {
+	resp, err := exchange.service.ApplyWithdrawal(currency, address, amount, map[string]string{
 		"memo":    memo,
 		"remark":  remark,
 		"chain":   chain,
@@ -757,8 +757,8 @@ func (kc *KuCoin) ApplyWithdrawal(currency, address, amount, memo, isInner, rema
 }
 
 // WithdrawalQuotas returns the quotas of withdrawal.
-func (kc *KuCoin) WithdrawalQuotas(currency, chain string) (*kucoin.WithdrawalQuotasModel, error) {
-	resp, err := kc.service.WithdrawalQuotas(currency, chain)
+func (exchange *Exchange) WithdrawalQuotas(currency, chain string) (*kucoin.WithdrawalQuotasModel, error) {
+	resp, err := exchange.service.WithdrawalQuotas(currency, chain)
 	if err != nil {
 		log.Error("KuCoin WithdrawalQuotas error:", err)
 		return nil, err
@@ -775,8 +775,8 @@ func (kc *KuCoin) WithdrawalQuotas(currency, chain string) (*kucoin.WithdrawalQu
 }
 
 // CancelWithdrawal cancels a withdrawal by withdrawalId.
-func (kc *KuCoin) CancelWithdrawal(withdrawalId string) (*kucoin.CancelWithdrawalResultModel, error) {
-	resp, err := kc.service.CancelWithdrawal(withdrawalId)
+func (exchange *Exchange) CancelWithdrawal(withdrawalId string) (*kucoin.CancelWithdrawalResultModel, error) {
+	resp, err := exchange.service.CancelWithdrawal(withdrawalId)
 	if err != nil {
 		log.Error("KuCoin CancelWithdrawal error:", err)
 		return nil, err
@@ -792,6 +792,10 @@ func (kc *KuCoin) CancelWithdrawal(withdrawalId string) (*kucoin.CancelWithdrawa
 	return model, nil
 }
 
-func (kc *KuCoin) GetAssets(currency CurrencyPair) (*Assets, error) {
+func (exchange *Exchange) GetAssets(currency CurrencyPair) (*Assets, error) {
+	panic("")
+}
+
+func (exchange *Exchange) GetTradeHistory(currency CurrencyPair, optional ...OptionalParameter) ([]Trade, error) {
 	panic("")
 }

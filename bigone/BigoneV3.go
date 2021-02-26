@@ -14,7 +14,7 @@ import (
 )
 
 type BigoneV3 struct {
-	Bigone
+	Exchange
 }
 
 //accessKey,
