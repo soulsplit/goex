@@ -211,13 +211,13 @@ func (exchange *Exchange) GetOrderHistorys(currency CurrencyPair, optional ...Op
 func (exchange *Exchange) GetTradeHistory(currency CurrencyPair, optional ...OptionalParameter) ([]Trade, error) {
 	var resultmap map[string]map[string]interface{}
 
-	err := exchange.doAuthenticatedRequest("POST", PRIVATE+"TradesHistory?ofs=0", url.Values{}, &resultmap)
+	err := exchange.doAuthenticatedRequest("POST", PRIVATE+"TradesHistory", url.Values{}, &resultmap)
 	if err != nil {
-		return nil, err
+		fmt.Println(err)
 	}
 
 	var allTrades []Trade
-	for _, trade := range resultmap {
+	for _, trade := range resultmap["trades"] {
 		singleTrade := exchange.toTrade(trade)
 		allTrades = append(allTrades, singleTrade)
 	}

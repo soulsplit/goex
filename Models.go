@@ -39,6 +39,7 @@ type Trade struct {
 	Fee       float64      `json:"fee"`
 	Margin    float64      `json:"margin"`
 	Misc      string       `json:"misc"`
+	TradeID   string
 }
 
 // trades = array of trade info with txid as the key
