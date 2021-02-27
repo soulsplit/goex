@@ -127,7 +127,7 @@ func (exchange *Exchange) toOrder(orderinfo interface{}) Order {
 	}
 }
 
-func (exchange *Exchange) toTrade(tradeinfo interface{}) Trade {
+func (exchange *Exchange) toTrade(tradeinfo interface{}, id string) Trade {
 	tmap := tradeinfo.(map[string]interface{})
 	pair := tmap["pair"].(string)
 	ind := strings.Index(pair, "EUR")
@@ -142,7 +142,9 @@ func (exchange *Exchange) toTrade(tradeinfo interface{}) Trade {
 		OrderTime: ToInt(tmap["time"]),
 		Pair:      currency,
 		OrderID2:  tmap["ordertxid"].(string),
-		TradeID:   tmap["postxid"].(string),
+		TradeID:   id,
+		// Date:      tmap["date"],
+		Cost: ToFloat64(tmap["cost"].(string)),
 	}
 }
 
@@ -216,8 +218,8 @@ func (exchange *Exchange) GetTradeHistory(currency CurrencyPair, optional ...Opt
 	}
 
 	var allTrades []Trade
-	for _, trade := range resultmap["trades"] {
-		singleTrade := exchange.toTrade(trade)
+	for id, trade := range resultmap["trades"] {
+		singleTrade := exchange.toTrade(trade, id)
 		allTrades = append(allTrades, singleTrade)
 	}
 	return allTrades, err
